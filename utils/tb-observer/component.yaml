@@ -1,0 +1,20 @@
+name: tb-observer
+implementation:
+  container:
+    image: gcr.io/xxx/tb-observer:latest
+    command: [
+      python3, main.py,
+      --pipeline_name, {inputValue: pipeline_name},
+      --bucket, {inputValue: bucket},
+      --job_id, {inputValue: job_id},
+      --log_dir, {inputValue: log_dir},
+    ]
+    fileOutputs: {mlpipeline-ui-metadata: /mlpipeline-ui-metadata.json}
+    
+inputs:
+- {name: pipeline_name, type: String}
+- {name: bucket, type: String}
+- {name: job_id, type: String}
+- {name: log_dir, type: String}
+outputs:
+- {name: mlpipeline-ui-metadata}
