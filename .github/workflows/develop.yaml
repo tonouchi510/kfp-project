@@ -1,0 +1,169 @@
+name: develop
+
+on:
+  push:
+    branches-ignore:
+      - main
+
+env:
+  GCP_PROJECT: ${{ secrets.GCP_PROJECT_ID }}
+  GCP_REGION: ${{ secrets.GCP_REGION }}
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout the repository
+        uses: actions/checkout@v2
+      
+      - name: Setup Authentication with gcloud
+        uses: google-github-actions/setup-gcloud@master
+        with:
+          service_account_key: ${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}
+          export_default_credentials: true
+      
+      - name: Set up Python 3.9
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.9
+          architecture: 'x64'
+      
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install poetry
+          poetry env use python3.9
+          poetry install
+      
+      - name: Run test
+        run: poetry run echo "skip" #python3 -m tests.main
+      
+  build-docker-image-and-push:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      # no space left on device対策 インスタンスに存在する全イメージを削除
+      - name: Delete docker images at first
+        run: |
+          docker images -aq | xargs docker rmi -f
+
+      - name: Checkout the repository
+        uses: actions/checkout@v2
+      
+      - name: Fetch the repository
+        run: git fetch
+      
+      - name: Setup Authentication with gcloud
+        uses: google-github-actions/setup-gcloud@master
+        with:
+          service_account_key: ${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}
+          export_default_credentials: true
+      
+      - name: Configure docker to use the gcloud cli
+        run: gcloud auth configure-docker --quiet
+      
+      - name: Build & push pipeline images
+        run: |
+          cat .github/workflows/deploy-targets.txt | while read target
+          do
+            if [ "${target:0:1}" != "#" ]; then
+              if [ "${target:0:9}" != "pipelines" ]; then
+                # base or general イメージのビルド
+                component_name=${target//\//-}
+                IMAGE_NAME=gcr.io/${{ secrets.GCP_PROJECT_ID }}/${component_name}
+                echo "**********************************************"
+                echo "Docker Build & Push $IMAGE_NAME:${GITHUB_SHA::7}"
+                echo "**********************************************"
+                docker build -f $target/Dockerfile -t $IMAGE_NAME:${GITHUB_SHA::7} .
+                docker tag $IMAGE_NAME:${GITHUB_SHA::7} $IMAGE_NAME:latest
+                docker push $IMAGE_NAME:${GITHUB_SHA::7}
+                docker push $IMAGE_NAME:latest
+                docker rmi -f $IMAGE_NAME
+              else
+                # pipeline componentのビルド
+                find ${target}/* -type d | while read component_dir
+                do
+                  component_name=${component_dir//pipelines\//}
+                  component_name=${component_name//\//-}
+                  IMAGE_NAME=gcr.io/${{ secrets.GCP_PROJECT_ID }}/${component_name}
+                  echo "**********************************************"
+                  echo "Docker Build & Push $IMAGE_NAME:${GITHUB_SHA::7}"
+                  echo "**********************************************"
+                  docker build -f $component_dir/Dockerfile -t $IMAGE_NAME:${GITHUB_SHA::7} .
+                  docker tag $IMAGE_NAME:${GITHUB_SHA::7} $IMAGE_NAME:latest
+                  docker push $IMAGE_NAME:${GITHUB_SHA::7}
+                  docker push $IMAGE_NAME:latest
+                  docker rmi -f $IMAGE_NAME
+                done
+              fi
+            fi
+          done
+
+  compile-pipeline-and-submit:
+    needs: build-docker-image-and-push
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout the repository
+        uses: actions/checkout@v2
+      
+      - name: Fetch the repository
+        run: git fetch
+      
+      - name: Setup Authentication with gcloud
+        uses: google-github-actions/setup-gcloud@master
+        with:
+          service_account_key: ${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}
+          export_default_credentials: true
+      
+      - name: Set up Python 3.9
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.9
+          architecture: 'x64'
+      
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install poetry
+          poetry env use python3.9
+          poetry install
+      
+      - name: Update component specs
+        run: |
+          echo "**********************************************"
+          echo "Update component image_tag to ${GITHUB_SHA::7}"
+          echo "**********************************************"
+          poetry run python .github/workflows/helper.py update-specs --image_tag "${GITHUB_SHA::7}"
+      
+      - name: Compile pipeline
+        run: |
+          cat .github/workflows/deploy-targets.txt | while read target
+          do
+            if [ "${target:0:9}" = "pipelines" ]; then
+              pipeline_file=$(ls ${target}/*-pipeline.py)
+              output_file=${target//pipelines\//}.tar.gz
+              echo "**********************************************"
+              echo "Compile $pipeline_file"
+              echo "**********************************************"
+              poetry run dsl-compile --py "$pipeline_file" --output "${output_file}"
+            fi
+          done
+        
+      - name: Deploy pipeline and run
+        run: |
+          targets=$(ls | grep pipeline.tar.gz || echo "")
+          for target in $targets; do
+              echo "**********************************************"
+              echo "Deploy $target"
+              echo "**********************************************"
+              pipeline_name=$(basename $target .tar.gz)
+              poetry run python .github/workflows/helper.py deploy-pipeline \
+                --package_path "$target" --pipeline_name "$pipeline_name" --github_sha "$GITHUB_SHA" --run
+
+              echo "**********************************************"
+              echo "Upload $target to gcs"
+              echo "**********************************************"
+              gsutil cp "$target" "gs://mitene-github-actions/pkg/${GITHUB_SHA}/"
+          done
+
