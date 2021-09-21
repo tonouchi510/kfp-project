@@ -1,7 +1,7 @@
 FROM debian:buster-slim
 
 WORKDIR /workspace
-COPY utils/slack-notification/entrypoint.sh ./entrypoint.sh
+COPY components/slack-notification/entrypoint.sh ./entrypoint.sh
 
 RUN apt update && \
     DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
