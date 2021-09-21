@@ -6,11 +6,11 @@ PIPELINE_NAME = "hello-world-pipeline"
 
 # Initialize component store
 component_store = kfp.components.ComponentStore(
-    local_search_paths=["pipelines/hello-world-pipeline", "utils"])
+    local_search_paths=["pipelines/hello-world-pipeline", "components"])
 
 # Create component factories
 parallelizer_op = component_store.load_component("parallelizer")
-hello_op = component_store.load_component("message")
+hello_op = component_store.load_component("hello")
 slack_notification_op = component_store.load_component("slack-notification")
 
 
