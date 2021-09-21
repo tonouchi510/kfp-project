@@ -1,0 +1,12 @@
+arguments:
+  pipeline_name: elephant-pipeline
+  bucket: mitene-ml-research
+  job_id: xxxx
+  batch_size: 1024
+  epochs: 30
+  lr: 0.0001
+  dataset: gs://mitene-ml-research/artifacts/swallow-pipeline/face-tagging-20200617-160730-asia
+  linear_evaluation_dataset: gs://mitene-ml-research/artifacts/swallow-pipeline/face-tagging-20200617-160730-asia-test
+  model_type: vit
+  emb_dim: 512
+  bct_model_path: gs://mitene-ml-research/artifacts/fossil-pipeline/face-tagging-20200617-160730-asia
