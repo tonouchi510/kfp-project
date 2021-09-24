@@ -47,4 +47,7 @@ def pipeline(
 
 
 if __name__ == "__main__":
-    kfp.compiler.Compiler().compile(pipeline, "hello-world-pipeline.yaml")
+    kfp.v2.compiler.Compiler().compile(
+        pipeline_func=pipeline, 
+        package_path="hello-world-pipeline.json"
+    )

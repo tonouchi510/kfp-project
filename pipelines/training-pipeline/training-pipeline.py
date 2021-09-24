@@ -63,4 +63,7 @@ def pipeline(
 
 
 if __name__ == "__main__":
-    kfp.compiler.Compiler().compile(pipeline, 'training-pipeline.yaml')
+    kfp.v2.compiler.Compiler().compile(
+        pipeline_func=pipeline, 
+        package_path="training-pipeline.json"
+    )

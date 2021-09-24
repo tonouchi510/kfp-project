@@ -8,6 +8,8 @@ on:
 env:
   GCP_PROJECT: ${{ secrets.GCP_PROJECT_ID }}
   GCP_REGION: ${{ secrets.GCP_REGION }}
+  PIPELINE_ROOT: ${{ secrets.PIPELINE_ROOT }}
+  GOOGLE_APPLICATION_CREDENTIALS: "searvice-account.json"
 
 jobs:
   test:
@@ -131,34 +133,33 @@ jobs:
           echo "**********************************************"
           poetry run python .github/workflows/helper.py update-specs --image_tag "${GITHUB_SHA::7}"
       
-      - name: Compile pipeline
+      - name: Compile and Run pipeline
         run: |
+          echo ${{ secrets.GCP_SERVICE_ACCOUNT_KEY }} >> service-account.json
           cat .github/workflows/build-targets.txt | while read target
           do
             if [ "${target:0:9}" = "pipelines" ]; then
               pipeline_file=$(ls ${target}/*-pipeline.py)
-              output_file=${target//pipelines\//}.tar.gz
               echo "**********************************************"
               echo "Compile $pipeline_file"
               echo "**********************************************"
-              poetry run dsl-compile --py "$pipeline_file" --output "${output_file}"
-            fi
-          done
-        
-      - name: Deploy pipeline and run
-        run: |
-          targets=$(ls | grep pipeline.tar.gz || echo "")
-          for target in $targets; do
+              poetry run python ${pipeline_file}
+
               echo "**********************************************"
-              echo "Deploy $target"
+              echo "Upload $pipeline_file to gcs"
+              echo "**********************************************"
+              DATETIME=`date +%Y%m%d_%H%M%S`
+              gsutil cp ${pipeline_file} {{ secrets.PIPELINE_ROOT }}/${DATETIME}/
+
+
+
+              echo "**********************************************"
+              echo "Run $target"
               echo "**********************************************"
               pipeline_name=$(basename $target .tar.gz)
-              poetry run python .github/workflows/helper.py deploy-pipeline \
-                --package_path "$target" --pipeline_name "$pipeline_name" --github_sha "$GITHUB_SHA" --run
-
-              echo "**********************************************"
-              echo "Upload $target to gcs"
-              echo "**********************************************"
-              gsutil cp "$target" "gs://mitene-github-actions/pkg/${GITHUB_SHA}/"
+              package_name=${pipeline_name}.json
+              poetry run python .github/workflows/helper.py run-pipeline \
+                --package_path "$package_name" --pipeline_name "$pipeline_name" \
+                --github_sha "$GITHUB_SHA" --datetime "$DATETIME"
+            fi
           done
-
