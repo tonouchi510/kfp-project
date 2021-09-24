@@ -8,6 +8,8 @@ on:
 env:
   GCP_PROJECT: ${{ secrets.GCP_PROJECT_ID }}
   GCP_REGION: ${{ secrets.GCP_REGION }}
+  GCP_SERVICE_ACCOUNT_KEY: ${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}
+  GOOGLE_APPLICATION_CREDENTIALS: "searvice-account.json"
 
 jobs:
   test:
@@ -68,7 +70,7 @@ jobs:
       
       - name: Run pipeline
         run: |
-          echo ${{ secrets.GCP_SERVICE_ACCOUNT_KEY }} >> service-account.json
+          echo $GCP_SERVICE_ACCOUNT_KEY > service-account.json
           cat .github/workflows/build-targets.txt | while read target
           do
             if [ "${target:0:9}" = "pipelines" ]; then

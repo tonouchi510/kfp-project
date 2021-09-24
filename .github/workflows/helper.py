@@ -18,9 +18,6 @@ import os
 import pathlib
 import fire
 from kfp.v2.google.client import AIPlatformClient
-from utils.logger import get_logger
-
-logger = get_logger(__name__)
 
 REPO_URL = f"gcr.io/{os.environ.get('GCP_PROJECT_ID')}"
 PIPELINE_DIR = "pipelines"
@@ -38,7 +35,7 @@ def update_component_spec(image_tag: str):
             full_image_name = f"{REPO_URL}/{image_name}:{image_tag}"
             spec["implementation"]["container"]["image"] = full_image_name
             pathlib.Path(spec_path).write_text(yaml.dump(spec))
-            logger.info(f"Component {image_name} specs updated. Image: {full_image_name}")
+            print(f"Component {image_name} specs updated. Image: {full_image_name}")
 
 
 def read_settings(pipeline_name: str, github_sha: str):
@@ -62,7 +59,7 @@ def run_pipeline(
     """Deploy and run the givne kfp_package_path."""
 
     client = AIPlatformClient(
-        project_id=os.environ.get("GCP_PROJECT_ID"), region=os.environ.get("GCP_REGION"))
+        project_id=os.environ.get("GCP_PROJECT"), region=os.environ.get("GCP_REGION"))
     settings = read_settings(pipeline_name, github_sha)
 
     try:
@@ -71,15 +68,15 @@ def run_pipeline(
             pipeline_root=f"{os.environ.get('PIPELINE_ROOT')}/{github_sha}",
             parameter_values=settings
         )
-        logger.info(response)
+        print(response)
     except Exception as e:
-        logger.error(e)
+        print(e)
 
 
 def main(operation, **args):
     # Update Component Specs
     if operation == "update-specs":
-        logger.info("Setting images to the component spec...")
+        print("Setting images to the component spec...")
         image_tag = "latest"
         if "image_tag" in args:
             image_tag = args["image_tag"]
@@ -87,7 +84,7 @@ def main(operation, **args):
 
     # Run Pipeline
     elif operation == "run-pipeline":
-        logger.info('Running Kubeflow pipeline...')
+        print('Running Kubeflow pipeline...')
         if "package_path" not in args:
             raise ValueError("package_path has to be supplied.")
         package_path = args["package_path"]
@@ -100,15 +97,11 @@ def main(operation, **args):
             raise ValueError("github_sha has to be supplied.")
         github_sha = args["github_sha"]
 
-        if "datetime" not in args:
-            raise ValueError("datetime has to be supplied.")
-        github_sha = args["datetime"]
-
         run_pipeline(package_path, pipeline_name, github_sha)
 
     # Check params
     elif operation == 'read-settings':
-        logger.info('Read pipeline params')
+        print('Read pipeline params')
         if 'pipeline_name' not in args:
             raise ValueError('pipeline_name has to be supplied.')
         pipeline_dir = args['pipeline_name']
@@ -118,11 +111,11 @@ def main(operation, **args):
         github_sha = args['github_sha']
 
         params = read_settings(pipeline_dir, github_sha)
-        logger.debug(params)
+        print(params)
 
     else:
         raise ValueError(
-            'Invalid operation name: {}. Valid operations: update-specs | deploy-pipeline'.format(operation))
+            'Invalid operation name: {}. Valid operations: update-specs | run-pipeline'.format(operation))
 
 
 if __name__ == '__main__':

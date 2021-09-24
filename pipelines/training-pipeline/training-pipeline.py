@@ -16,7 +16,7 @@ slack_notification_op = component_store.load_component("slack-notification")
 
 # Define pipeline
 @dsl.pipeline(
-    name="training pipeline",
+    name="training-pipeline",
     description="training pipeline for simple cnn"
 )
 def pipeline(

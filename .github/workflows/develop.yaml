@@ -9,6 +9,7 @@ env:
   GCP_PROJECT: ${{ secrets.GCP_PROJECT_ID }}
   GCP_REGION: ${{ secrets.GCP_REGION }}
   PIPELINE_ROOT: ${{ secrets.PIPELINE_ROOT }}
+  GCP_SERVICE_ACCOUNT_KEY: ${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}
   GOOGLE_APPLICATION_CREDENTIALS: "searvice-account.json"
 
 jobs:
@@ -147,13 +148,16 @@ jobs:
               echo "**********************************************"
               echo "Upload $pipeline_file to gcs"
               echo "**********************************************"
-              gsutil cp ${pipeline_file} {{ secrets.PIPELINE_ROOT }}/${GITHUB_SHA::7}/
+              pipeline_name=$(basename $pipeline_file .py)
+              echo ${pipeline_name}.json
+              echo {{ secrets.PIPELINE_ROOT }}/${GITHUB_SHA::7}/
+              gsutil cp ${pipeline_name}.json ${PIPELINE_ROOT}/${GITHUB_SHA::7}/
             fi
           done
 
       - name: Run pipeline
         run: |
-          echo ${{ secrets.GCP_SERVICE_ACCOUNT_KEY }} >> service-account.json
+          echo $GCP_SERVICE_ACCOUNT_KEY > service-account.json
           cat .github/workflows/build-targets.txt | while read target
           do
             if [ "${target:0:9}" = "pipelines" ]; then
