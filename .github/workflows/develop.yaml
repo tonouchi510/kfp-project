@@ -42,11 +42,6 @@ jobs:
     needs: test
     runs-on: ubuntu-latest
     steps:
-      # no space left on device対策 インスタンスに存在する全イメージを削除
-      - name: Delete docker images at first
-        run: |
-          docker images -aq | xargs docker rmi -f
-
       - name: Checkout the repository
         uses: actions/checkout@v2
       
@@ -64,7 +59,7 @@ jobs:
       
       - name: Build & push pipeline images
         run: |
-          cat .github/workflows/deploy-targets.txt | while read target
+          cat .github/workflows/build-targets.txt | while read target
           do
             if [ "${target:0:1}" != "#" ]; then
               if [ "${target:0:9}" != "pipelines" ]; then
@@ -138,7 +133,7 @@ jobs:
       
       - name: Compile pipeline
         run: |
-          cat .github/workflows/deploy-targets.txt | while read target
+          cat .github/workflows/build-targets.txt | while read target
           do
             if [ "${target:0:9}" = "pipelines" ]; then
               pipeline_file=$(ls ${target}/*-pipeline.py)
