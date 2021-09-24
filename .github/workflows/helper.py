@@ -58,7 +58,6 @@ def run_pipeline(
     kfp_package_path: str,
     pipeline_name: str,
     github_sha: str,
-    datetime: str
 ) -> None:
     """Deploy and run the givne kfp_package_path."""
 
@@ -69,7 +68,7 @@ def run_pipeline(
     try:
         response = client.create_run_from_job_spec(
             kfp_package_path,
-            pipeline_root=f"{os.environ.get('PIPELINE_ROOT')}/{datetime}",
+            pipeline_root=f"{os.environ.get('PIPELINE_ROOT')}/{github_sha}",
             parameter_values=settings
         )
         logger.info(response)

@@ -133,9 +133,8 @@ jobs:
           echo "**********************************************"
           poetry run python .github/workflows/helper.py update-specs --image_tag "${GITHUB_SHA::7}"
       
-      - name: Compile and Run pipeline
+      - name: Compile and upload pipeline
         run: |
-          echo ${{ secrets.GCP_SERVICE_ACCOUNT_KEY }} >> service-account.json
           cat .github/workflows/build-targets.txt | while read target
           do
             if [ "${target:0:9}" = "pipelines" ]; then
@@ -148,11 +147,16 @@ jobs:
               echo "**********************************************"
               echo "Upload $pipeline_file to gcs"
               echo "**********************************************"
-              DATETIME=`date +%Y%m%d_%H%M%S`
-              gsutil cp ${pipeline_file} {{ secrets.PIPELINE_ROOT }}/${DATETIME}/
+              gsutil cp ${pipeline_file} {{ secrets.PIPELINE_ROOT }}/${GITHUB_SHA::7}/
+            fi
+          done
 
-
-
+      - name: Run pipeline
+        run: |
+          echo ${{ secrets.GCP_SERVICE_ACCOUNT_KEY }} >> service-account.json
+          cat .github/workflows/build-targets.txt | while read target
+          do
+            if [ "${target:0:9}" = "pipelines" ]; then
               echo "**********************************************"
               echo "Run $target"
               echo "**********************************************"
@@ -160,6 +164,6 @@ jobs:
               package_name=${pipeline_name}.json
               poetry run python .github/workflows/helper.py run-pipeline \
                 --package_path "$package_name" --pipeline_name "$pipeline_name" \
-                --github_sha "$GITHUB_SHA" --datetime "$DATETIME"
+                --github_sha "$GITHUB_SHA"
             fi
           done
