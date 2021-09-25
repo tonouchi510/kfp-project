@@ -32,18 +32,19 @@ def pipeline(
             message="Status: {{workflow.status}}"
         )
     ):
+        """
         parallelizer_task = parallelizer_op(
             bucket=bucket,
             job_id=job_id,
             message_file=message_file,
         ).apply(gcp.use_preemptible_nodepool()) \
             .set_retry(num_retries=2)
-
         with dsl.ParallelFor(parallelizer_task.output) as item:
-            hello_task = hello_op(
-                message=item,
-            ).apply(gcp.use_preemptible_nodepool()) \
-                .set_retry(num_retries=2)
+        """
+        hello_task = hello_op(
+            message="hello world",
+        ).apply(gcp.use_preemptible_nodepool()) \
+            .set_retry(num_retries=2)
 
 
 if __name__ == "__main__":

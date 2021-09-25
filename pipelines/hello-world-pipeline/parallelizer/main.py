@@ -47,7 +47,7 @@ def main(argv):
     if len(argv) > 1:
         raise app.UsageError('Too many command-line arguments.')
     
-    logging.INFO(f"Start: {PIPELINE_NAME} {FLAGS.job_id}")
+    logging.info(f"Start: {PIPELINE_NAME} {FLAGS.job_id}")
 
     source_blob_name = FLAGS.message_file.replace(f"gs://{FLAGS.bucket}/", "")
     filename = download_blob(FLAGS.bucket, source_blob_name)
@@ -55,7 +55,7 @@ def main(argv):
     outputs = []
     with open(filename, "r") as f:
         outputs.append(f.readline())
-    logging.INFO(f"Num of messages: {len(outputs)}")
+    logging.info(f"Num of messages: {len(outputs)}")
 
     with open("/tmp/out.json", "w") as f:
         json.dump(outputs, f, indent=4)

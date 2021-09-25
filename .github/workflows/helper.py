@@ -19,7 +19,7 @@ import pathlib
 import fire
 from kfp.v2.google.client import AIPlatformClient
 
-REPO_URL = f"gcr.io/{os.environ.get('GCP_PROJECT_ID')}"
+REPO_URL = f"gcr.io/{os.environ.get('GCP_PROJECT')}"
 PIPELINE_DIR = "pipelines"
 SETTINGS_FILENAME = "settings.yaml"
 

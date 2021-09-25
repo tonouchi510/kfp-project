@@ -66,8 +66,10 @@ jobs:
           do
             if [ "${target:0:1}" != "#" ]; then
               if [ "${target:0:9}" != "pipelines" ]; then
-                # base or general イメージのビルド
-                component_name=${target//\//-}
+                # base or components フォルダのイメージのビルド
+                component_name=${target//components\//}
+                component_name=${component_name//base\//}
+                component_name=${component_name//\//-}
                 IMAGE_NAME=gcr.io/${{ secrets.GCP_PROJECT_ID }}/${component_name}
                 echo "**********************************************"
                 echo "Docker Build & Push $IMAGE_NAME:${GITHUB_SHA::7}"

@@ -1,7 +1,7 @@
 name: tb-observer
 implementation:
   container:
-    image: gcr.io/xxx/tb-observer:latest
+    image: gcr.io/huroshotoku/tb-observer:latest
     command: [
       python3, main.py,
       --pipeline_name, {inputValue: pipeline_name},

@@ -40,10 +40,9 @@ done
 
 
 # WebHookのURL
-#URL=$(gcloud secrets versions access latest --secret="kfp-slack-webhook-url")
-URL='xxxxxx'
+URL=$(gcloud secrets versions access latest --secret="kfp-slack-webhook-url")
 # 送信先のチャンネル
-CHANNEL=${CHANNEL:-'#kfp-report'}
+CHANNEL=${CHANNEL:-'#dev-notify'}
 # botの名前
 BOTNAME=${BOTNAME:-'kfp-bot'}
 # 絵文字
