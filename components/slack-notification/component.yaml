@@ -1,7 +1,7 @@
 name: slack-notification
 implementation:
   container:
-    image: gcr.io/huroshotoku/slack-notification:latest
+    image: gcr.io/xxxxx/slack-notification:latest
     command: [
       /usr/local/bin/entrypoint.sh,
       --pipeline_name, {inputValue: pipeline_name},

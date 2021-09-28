@@ -19,7 +19,7 @@ import pathlib
 import fire
 from kfp.v2.google.client import AIPlatformClient
 
-REPO_URL = f"gcr.io/{os.environ.get('GCP_PROJECT')}"
+PROJECT_ID = os.environ.get("GCP_PROJECT")
 PIPELINE_DIR = "pipelines"
 SETTINGS_FILENAME = "settings.yaml"
 
@@ -27,12 +27,31 @@ SETTINGS_FILENAME = "settings.yaml"
 def update_component_spec(image_tag: str):
     """Update the image in the component.yaml files given the repo_url and image_tag."""
 
+    # base 配下
+    targets = pathlib.Path("base").glob("*")
+    for target_dir in targets:
+        for spec_path in pathlib.Path(target_dir).glob("component.yaml"):
+            spec = yaml.safe_load(pathlib.Path(spec_path).read_text())
+            image_name = spec["implementation"]["container"]["image"]
+            image_name = image_name.replace("xxxxx", PROJECT_ID)
+            spec["implementation"]["container"]["image"] = image_name
+
+    # components 配下
+    targets = pathlib.Path("components").glob("*")
+    for target_dir in targets:
+        for spec_path in pathlib.Path(target_dir).glob("component.yaml"):
+            spec = yaml.safe_load(pathlib.Path(spec_path).read_text())
+            image_name = spec["implementation"]["container"]["image"]
+            image_name = image_name.replace("xxxxx", PROJECT_ID)
+            spec["implementation"]["container"]["image"] = image_name
+
+    # pipelines 配下
     targets = pathlib.Path("pipelines").glob("*-pipeline")
     for target_dir in targets:
         for spec_path in pathlib.Path(target_dir).glob("*/component.yaml"):
             spec = yaml.safe_load(pathlib.Path(spec_path).read_text())
             image_name = os.path.dirname(str(spec_path)).replace("pipelines/", "").replace("/", "-")
-            full_image_name = f"{REPO_URL}/{image_name}:{image_tag}"
+            full_image_name = f"gcr.io/{PROJECT_ID}/{image_name}:{image_tag}"
             spec["implementation"]["container"]["image"] = full_image_name
             pathlib.Path(spec_path).write_text(yaml.dump(spec))
             print(f"Component {image_name} specs updated. Image: {full_image_name}")
