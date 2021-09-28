@@ -1,4 +1,3 @@
 arguments:
-  bucket: kfp-project
   job_id: xxxx
-  message_file: gs://kfp-project/message.txt
+  message: hellow world

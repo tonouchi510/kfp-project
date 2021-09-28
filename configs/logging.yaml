@@ -15,7 +15,7 @@ handlers:
     level: DEBUG
     formatter: debug
     stream: ext://sys.stdout
-loggers:
+#loggers:
   # loggerを利用するコンポーネント (helpers配下など) をここで定義する
   # 独自の設定が必要無い場合は `propagate: yes` としておく
 root:

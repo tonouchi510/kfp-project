@@ -35,6 +35,8 @@ def update_component_spec(image_tag: str):
             image_name = spec["implementation"]["container"]["image"]
             image_name = image_name.replace("xxxxx", PROJECT_ID)
             spec["implementation"]["container"]["image"] = image_name
+            pathlib.Path(spec_path).write_text(yaml.dump(spec))
+            print(f"Component {image_name} specs updated.")
 
     # components 配下
     targets = pathlib.Path("components").glob("*")
@@ -44,6 +46,8 @@ def update_component_spec(image_tag: str):
             image_name = spec["implementation"]["container"]["image"]
             image_name = image_name.replace("xxxxx", PROJECT_ID)
             spec["implementation"]["container"]["image"] = image_name
+            pathlib.Path(spec_path).write_text(yaml.dump(spec))
+            print(f"Component {image_name} specs updated.")
 
     # pipelines 配下
     targets = pathlib.Path("pipelines").glob("*-pipeline")

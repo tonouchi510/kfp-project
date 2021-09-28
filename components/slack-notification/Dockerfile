@@ -11,6 +11,7 @@ RUN apt-get update && \
     DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
 	git \
 	wget \
+    curl \
 	unzip \
 	libsm6 \
     libgl1-mesa-dev \
