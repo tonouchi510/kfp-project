@@ -1,9 +1,11 @@
 import os
 import json
-import logging
 from absl import app
 from absl import flags
 from google.cloud import storage
+
+from utils import get_logger
+logger = get_logger(__name__)
 
 PIPELINE_NAME = "hello-world-pipeline"
 
@@ -28,7 +30,7 @@ def download_blob(bucket_name, source_blob_name) -> str:
 
     destination_file_name = os.path.basename(source_blob_name)
     if os.path.exists(destination_file_name):
-        print(f"Already exist: {destination_file_name}")
+        logger.info(f"Already exist: {destination_file_name}")
     else:
         storage_client = storage.Client()
         bucket = storage_client.bucket(bucket_name)
@@ -36,7 +38,7 @@ def download_blob(bucket_name, source_blob_name) -> str:
         blob = bucket.blob(source_blob_name)
         blob.download_to_filename(destination_file_name)
 
-        print(
+        logger.info(
             "Blob {} downloaded to {}.".format(
                 source_blob_name, destination_file_name
             )
@@ -47,7 +49,7 @@ def main(argv):
     if len(argv) > 1:
         raise app.UsageError('Too many command-line arguments.')
     
-    logging.info(f"Start: {PIPELINE_NAME} {FLAGS.job_id}")
+    logger.info(f"Start: {PIPELINE_NAME} {FLAGS.job_id}")
 
     source_blob_name = FLAGS.message_file.replace(f"gs://{FLAGS.bucket}/", "")
     filename = download_blob(FLAGS.bucket, source_blob_name)
@@ -55,7 +57,7 @@ def main(argv):
     outputs = []
     with open(filename, "r") as f:
         outputs.append(f.readline())
-    logging.info(f"Num of messages: {len(outputs)}")
+    logger.info(f"Num of messages: {len(outputs)}")
 
     with open("/tmp/out.json", "w") as f:
         json.dump(outputs, f, indent=4)

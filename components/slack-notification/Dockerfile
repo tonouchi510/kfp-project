@@ -6,7 +6,6 @@ ENV PATH $PATH:/tools/node/bin:/tools/google-cloud-sdk/bin
 
 WORKDIR /workspace
 COPY components/slack-notification/entrypoint.sh ./entrypoint.sh
-COPY config/logging.yaml ./config/logging.yaml
 
 RUN apt-get update && \
     DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \

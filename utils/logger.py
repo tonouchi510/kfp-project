@@ -5,7 +5,7 @@ from pathlib import Path
 import yaml
 
 
-CONFIG_PATH = Path("config") / "logging.yaml"
+CONFIG_PATH = Path("configs") / "logging.yaml"
 
 
 def get_logger(name: str, config_path: Path = CONFIG_PATH) -> logging.Logger:
