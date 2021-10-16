@@ -20,6 +20,7 @@ import fire
 from kfp.v2.google.client import AIPlatformClient
 
 PROJECT_ID = os.environ.get("GCP_PROJECT")
+SERVICE_ACCOUNT_NAME = os.environ.get("GCP_SERVICE_ACCOUNT_NAME")
 PIPELINE_DIR = "pipelines"
 SETTINGS_FILENAME = "settings.yaml"
 
@@ -89,11 +90,13 @@ def run_pipeline(
         response = client.create_run_from_job_spec(
             kfp_package_path,
             pipeline_root=f"{os.environ.get('PIPELINE_ROOT')}/{github_sha}",
-            parameter_values=settings
+            parameter_values=settings,
+            service_account=SERVICE_ACCOUNT_NAME
         )
         print(response)
     except Exception as e:
         print(e)
+        exit(-1)
 
 
 def main(operation, **args):

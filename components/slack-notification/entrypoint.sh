@@ -38,10 +38,8 @@ do
   esac
 done
 
-#gcloud config set core/project huroshotoku
-#gcloud config set compute/region us-central1
 # WebHookのURL
-URL=$(gcloud secrets versions access latest --project=huroshotoku --secret="kfp-slack-webhook-url" --quiet)
+URL=$(gcloud secrets versions access latest --secret="kfp-slack-webhook-url" --quiet)
 # 送信先のチャンネル
 CHANNEL=${CHANNEL:-'#dev-notify'}
 # botの名前
