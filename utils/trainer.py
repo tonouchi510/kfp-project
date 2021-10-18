@@ -1,4 +1,4 @@
-# みてねでのDLトレーニングで共通のロジック・モジュール
+# DLトレーニングで共通のロジック・モジュール
 
 import tensorflow as tf
 from tensorflow.python.lib.io import file_io
@@ -10,49 +10,39 @@ from typing import List, Dict, Tuple
 import json
 from google.cloud import storage
 
-BUCKET_NAME = "mitene-ml-research"
 
-
-def get_labels(dataset: str, percentage: int) -> Tuple[int, List]:
+def get_labels(dataset: str, bucket_name: str) -> Tuple[int, List]:
     """データセットの教師ラベルを取得する.
-
-    引数datasetとpercentageを組み合わせて適切なデータセットを選択する.
-    percentageが100出ない時は対応するsubsetデータセットから取得する.
 
     Args:
         dataset (str): データセットのgcsパス
-        percentage (int): データセットの何%サブセットを使用するか
+        bucket_name (str): データセットが保存されているバケット名
 
     Returns:
         [int]: データセットのクラス数
         [List]: ラベルのリスト
     """
-
     client = storage.Client()
-    bucket = client.bucket(BUCKET_NAME)
+    bucket = client.bucket(bucket_name)
 
-    prefix = dataset.replace(f"gs://{BUCKET_NAME}/", "")
-    if percentage == 100:
-        source_blob_name = f"{prefix}/labels.txt"
-    else:
-        source_blob_name = f"{prefix}-subset-{percentage}/labels.txt"
-    dest_filename = "./labels.txt"
-
-    blob = bucket.blob(source_blob_name)
-    blob.download_to_filename(dest_filename)
+    prefix = dataset.replace(f"gs://{bucket_name}/", "")
+    blob = bucket.blob(f"{prefix}/labels.txt")
+    blob.download_to_filename("labels.txt")
 
     label_list = []
-    with open(dest_filename) as f:
+    with open("labels.txt") as f:
         label_list = [s.strip() for s in f.readlines()]
     num_classes = len(label_list)
 
     return num_classes, label_list
 
 
-def get_tfrecord_dataset(dataset_path: str,
-                 preprocessing: Callable,
-                 global_batch_size: int,
-                 is_train: bool) -> TFRecordDatasetV2:
+def get_tfrecord_dataset(
+    dataset_path: str,
+    preprocessing: Callable,
+    global_batch_size: int,
+    is_train: bool
+) -> TFRecordDatasetV2:
     # Build a pipeline
     option = tf.data.Options()
     option.experimental_deterministic = False
@@ -197,8 +187,12 @@ class Training:
     def add_callback(self, new_callback) -> None:
         self.callbacks.append(new_callback)
 
-    def run_train(self, train_ds: TFRecordDatasetV2,
-                  valid_ds: TFRecordDatasetV2, epochs: int) -> History:
+    def run_train(
+        self,
+        train_ds: TFRecordDatasetV2,
+        valid_ds: TFRecordDatasetV2,
+        epochs: int
+    ) -> History:
         """トレーニングを実施し、ログや結果を保存する.
 
         tf.keras.Model.fitでのトレーニングを行う.
