@@ -34,10 +34,11 @@ $ tree -L 3 -d
 
 ```
 Pipeline_X
-├── Component_A         # コンポーネントのコード置き場
+├── Component_A          # コンポーネントのコード置き場
 ├── Component_B
-├── settings.yaml       # CIで実行する際のパラメータを記述
-└── xxx-pipeline.py     # パイプライン定義ファイル。kfpのDSLを使用して構築する。
+├── settings.debug.yaml  # 開発中にCIで実行する際のデバッグ実行用パラメータを記述
+├── settings.yaml        # masterブランチマージ時にCIで実行する際のパラメータを記述
+└── xxx-pipeline.py      # パイプライン定義ファイル。kfpのDSLを使用して構築する。
 ```
 
 #### componentの構成

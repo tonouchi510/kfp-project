@@ -171,6 +171,6 @@ jobs:
               package_name=${pipeline_name}.json
               poetry run python .github/workflows/helper.py run-pipeline \
                 --package_path "$package_name" --pipeline_name "$pipeline_name" \
-                --github_sha "$GITHUB_SHA"
+                --github_sha "$GITHUB_SHA" --debug
             fi
           done

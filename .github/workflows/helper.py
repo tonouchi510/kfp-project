@@ -22,33 +22,22 @@ from kfp.v2.google.client import AIPlatformClient
 PROJECT_ID = os.environ.get("GCP_PROJECT")
 SERVICE_ACCOUNT_NAME = os.environ.get("GCP_SERVICE_ACCOUNT_NAME")
 PIPELINE_DIR = "pipelines"
-SETTINGS_FILENAME = "settings.yaml"
 
 
 def update_component_spec(image_tag: str):
     """Update the image in the component.yaml files given the repo_url and image_tag."""
 
-    # base 配下
-    targets = pathlib.Path("base").glob("*")
-    for target_dir in targets:
-        for spec_path in pathlib.Path(target_dir).glob("component.yaml"):
-            spec = yaml.safe_load(pathlib.Path(spec_path).read_text())
-            image_name = spec["implementation"]["container"]["image"]
-            image_name = image_name.replace("xxxxx", PROJECT_ID)
-            spec["implementation"]["container"]["image"] = image_name
-            pathlib.Path(spec_path).write_text(yaml.dump(spec))
-            print(f"Component {image_name} specs updated.")
-
-    # components 配下
-    targets = pathlib.Path("components").glob("*")
-    for target_dir in targets:
-        for spec_path in pathlib.Path(target_dir).glob("component.yaml"):
-            spec = yaml.safe_load(pathlib.Path(spec_path).read_text())
-            image_name = spec["implementation"]["container"]["image"]
-            image_name = image_name.replace("xxxxx", PROJECT_ID)
-            spec["implementation"]["container"]["image"] = image_name
-            pathlib.Path(spec_path).write_text(yaml.dump(spec))
-            print(f"Component {image_name} specs updated.")
+    # 共通イメージ
+    for d in ["base", "components"]:
+        targets = pathlib.Path(d).glob("*")
+        for target_dir in targets:
+            for spec_path in pathlib.Path(target_dir).glob("component.yaml"):
+                spec = yaml.safe_load(pathlib.Path(spec_path).read_text())
+                image_name = spec["implementation"]["container"]["image"]
+                image_name = image_name.replace("xxxxx", PROJECT_ID)
+                spec["implementation"]["container"]["image"] = image_name
+                pathlib.Path(spec_path).write_text(yaml.dump(spec))
+                print(f"Component {image_name} specs updated.")
 
     # pipelines 配下
     targets = pathlib.Path("pipelines").glob("*-pipeline")
@@ -62,15 +51,18 @@ def update_component_spec(image_tag: str):
             print(f"Component {image_name} specs updated. Image: {full_image_name}")
 
 
-def read_settings(pipeline_name: str, github_sha: str):
+def read_settings(pipeline_name: str, github_sha: str, is_debug: bool):
     """Read all the parameter values from the settings.yaml file."""
-    settings_file = os.path.join(PIPELINE_DIR, pipeline_name, SETTINGS_FILENAME)
+    if is_debug:
+        job_id = f"debug-{github_sha}"
+        settings_file = os.path.join(PIPELINE_DIR, pipeline_name, "settings.debug.yaml")
+    else:
+        job_id = f"{pipeline_name}-{github_sha}"
+        settings_file = os.path.join(PIPELINE_DIR, pipeline_name, "settings.yaml")
     flat_settings = dict()
     setting_sections = yaml.safe_load(pathlib.Path(settings_file).read_text())
     for sections in setting_sections:
-        setting_sections[sections]["job_id"] = github_sha
-        #setting_sections[sections]["job_id"] = f"{pipeline_name}_{github_sha[:7]}"
-        #setting_sections[sections]["is_debug"] = True
+        setting_sections[sections]["job_id"] = job_id
         flat_settings.update(setting_sections[sections])
     return flat_settings
 
@@ -79,16 +71,19 @@ def run_pipeline(
     kfp_package_path: str,
     pipeline_name: str,
     github_sha: str,
+    is_debug: bool
 ) -> None:
     """Deploy and run the givne kfp_package_path."""
 
     client = AIPlatformClient(
         project_id=os.environ.get("GCP_PROJECT"), region=os.environ.get("GCP_REGION"))
-    settings = read_settings(pipeline_name, github_sha)
+    settings = read_settings(pipeline_name, github_sha, is_debug)
+    job_id = f"debug-{github_sha}" if is_debug else f"{pipeline_name}-{github_sha}"
 
     try:
         response = client.create_run_from_job_spec(
             kfp_package_path,
+            job_id=job_id,
             pipeline_root=f"{os.environ.get('PIPELINE_ROOT')}/{github_sha}",
             parameter_values=settings,
             service_account=SERVICE_ACCOUNT_NAME
@@ -123,7 +118,9 @@ def main(operation, **args):
             raise ValueError("github_sha has to be supplied.")
         github_sha = args["github_sha"]
 
-        run_pipeline(package_path, pipeline_name, github_sha)
+        is_debug = args["debug"]
+
+        run_pipeline(package_path, pipeline_name, github_sha, is_debug)
 
     # Check params
     elif operation == 'read-settings':
@@ -136,7 +133,9 @@ def main(operation, **args):
             raise ValueError('github_sha has to be supplied.')
         github_sha = args['github_sha']
 
-        params = read_settings(pipeline_dir, github_sha)
+        is_debug = args["debug"]
+
+        params = read_settings(pipeline_dir, github_sha, is_debug)
         print(params)
 
     else:
