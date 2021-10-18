@@ -16,7 +16,7 @@ slack_notification_op = component_store.load_component("slack-notification")
 
 # Define pipeline
 @dsl.pipeline(
-    name="training pipeline",
+    name="training-pipeline",
     description="training pipeline for simple cnn"
 )
 def pipeline(
@@ -63,4 +63,7 @@ def pipeline(
 
 
 if __name__ == "__main__":
-    kfp.compiler.Compiler().compile(pipeline, 'training-pipeline.yaml')
+    kfp.v2.compiler.Compiler().compile(
+        pipeline_func=pipeline, 
+        package_path="training-pipeline.json"
+    )

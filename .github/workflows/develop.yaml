@@ -8,6 +8,10 @@ on:
 env:
   GCP_PROJECT: ${{ secrets.GCP_PROJECT_ID }}
   GCP_REGION: ${{ secrets.GCP_REGION }}
+  PIPELINE_ROOT: ${{ secrets.PIPELINE_ROOT }}
+  GCP_SERVICE_ACCOUNT_KEY: ${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}
+  GCP_SERVICE_ACCOUNT_NAME: ${{ secrets.GCP_SERVICE_ACCOUNT_NAME }}
+  GOOGLE_APPLICATION_CREDENTIALS: "searvice-account.json"
 
 jobs:
   test:
@@ -42,11 +46,6 @@ jobs:
     needs: test
     runs-on: ubuntu-latest
     steps:
-      # no space left on device対策 インスタンスに存在する全イメージを削除
-      - name: Delete docker images at first
-        run: |
-          docker images -aq | xargs docker rmi -f
-
       - name: Checkout the repository
         uses: actions/checkout@v2
       
@@ -64,12 +63,14 @@ jobs:
       
       - name: Build & push pipeline images
         run: |
-          cat .github/workflows/deploy-targets.txt | while read target
+          cat .github/workflows/build-targets.txt | while read target
           do
             if [ "${target:0:1}" != "#" ]; then
               if [ "${target:0:9}" != "pipelines" ]; then
-                # base or general イメージのビルド
-                component_name=${target//\//-}
+                # base or components フォルダのイメージのビルド
+                component_name=${target//components\//}
+                component_name=${component_name//base\//}
+                component_name=${component_name//\//-}
                 IMAGE_NAME=gcr.io/${{ secrets.GCP_PROJECT_ID }}/${component_name}
                 echo "**********************************************"
                 echo "Docker Build & Push $IMAGE_NAME:${GITHUB_SHA::7}"
@@ -136,34 +137,40 @@ jobs:
           echo "**********************************************"
           poetry run python .github/workflows/helper.py update-specs --image_tag "${GITHUB_SHA::7}"
       
-      - name: Compile pipeline
+      - name: Compile and upload pipeline
         run: |
-          cat .github/workflows/deploy-targets.txt | while read target
+          cat .github/workflows/build-targets.txt | while read target
           do
             if [ "${target:0:9}" = "pipelines" ]; then
               pipeline_file=$(ls ${target}/*-pipeline.py)
-              output_file=${target//pipelines\//}.tar.gz
               echo "**********************************************"
               echo "Compile $pipeline_file"
               echo "**********************************************"
-              poetry run dsl-compile --py "$pipeline_file" --output "${output_file}"
+              poetry run python ${pipeline_file}
+
+              echo "**********************************************"
+              echo "Upload $pipeline_file to gcs"
+              echo "**********************************************"
+              pipeline_name=$(basename $pipeline_file .py)
+              echo ${pipeline_name}.json
+              echo {{ secrets.PIPELINE_ROOT }}/${GITHUB_SHA::7}/
+              gsutil cp ${pipeline_name}.json ${PIPELINE_ROOT}/${GITHUB_SHA::7}/
             fi
           done
-        
-      - name: Deploy pipeline and run
+
+      - name: Run pipeline
         run: |
-          targets=$(ls | grep pipeline.tar.gz || echo "")
-          for target in $targets; do
+          echo $GCP_SERVICE_ACCOUNT_KEY > service-account.json
+          cat .github/workflows/build-targets.txt | while read target
+          do
+            if [ "${target:0:9}" = "pipelines" ]; then
               echo "**********************************************"
-              echo "Deploy $target"
+              echo "Run $target"
               echo "**********************************************"
               pipeline_name=$(basename $target .tar.gz)
-              poetry run python .github/workflows/helper.py deploy-pipeline \
-                --package_path "$target" --pipeline_name "$pipeline_name" --github_sha "$GITHUB_SHA" --run
-
-              echo "**********************************************"
-              echo "Upload $target to gcs"
-              echo "**********************************************"
-              gsutil cp "$target" "gs://mitene-github-actions/pkg/${GITHUB_SHA}/"
+              package_name=${pipeline_name}.json
+              poetry run python .github/workflows/helper.py run-pipeline \
+                --package_path "$package_name" --pipeline_name "$pipeline_name" \
+                --github_sha "$GITHUB_SHA" --debug
+            fi
           done
-

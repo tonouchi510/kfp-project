@@ -71,11 +71,11 @@ python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*"
 
 [[package]]
 name = "cloudpickle"
-version = "1.6.0"
+version = "2.0.0"
 description = "Extended pickling support for Python objects"
 category = "main"
 optional = false
-python-versions = ">=3.5"
+python-versions = ">=3.6"
 
 [[package]]
 name = "deprecated"
@@ -294,7 +294,7 @@ format_nongpl = ["idna", "jsonpointer (>1.13)", "webcolors", "rfc3986-validator 
 
 [[package]]
 name = "kfp"
-version = "1.8.2"
+version = "1.8.5"
 description = "KubeFlow Pipelines SDK"
 category = "main"
 optional = false
@@ -302,8 +302,8 @@ python-versions = ">=3.6.1"
 
 [package.dependencies]
 absl-py = ">=0.9,<=0.11"
-click = ">=7.1.1,<8"
-cloudpickle = ">=1.3.0,<2"
+click = ">=7.1.2,<9"
+cloudpickle = ">=2.0.0,<3"
 Deprecated = ">=1.2.7,<2"
 docstring-parser = ">=0.7.3,<1"
 fire = ">=0.3.1,<1"
@@ -320,6 +320,11 @@ PyYAML = ">=5.3,<6"
 requests-toolbelt = ">=0.8.0,<1"
 strip-hints = ">=0.1.8,<1"
 tabulate = ">=0.8.6,<1"
+typer = ">=0.3.2,<1.0"
+uritemplate = ">=3.0.1,<4"
+
+[package.extras]
+all = ["docker"]
 
 [[package]]
 name = "kfp-pipeline-spec"
@@ -576,6 +581,23 @@ optional = false
 python-versions = "*"
 
 [[package]]
+name = "typer"
+version = "0.4.0"
+description = "Typer, build great CLIs. Easy to code. Based on Python type hints."
+category = "main"
+optional = false
+python-versions = ">=3.6"
+
+[package.dependencies]
+click = ">=7.1.1,<9.0.0"
+
+[package.extras]
+all = ["colorama (>=0.4.3,<0.5.0)", "shellingham (>=1.3.0,<2.0.0)"]
+dev = ["autoflake (>=1.3.1,<2.0.0)", "flake8 (>=3.8.3,<4.0.0)"]
+doc = ["mkdocs (>=1.1.2,<2.0.0)", "mkdocs-material (>=5.4.0,<6.0.0)", "markdown-include (>=0.5.1,<0.6.0)"]
+test = ["shellingham (>=1.3.0,<2.0.0)", "pytest (>=4.4.0,<5.4.0)", "pytest-cov (>=2.10.0,<3.0.0)", "coverage (>=5.2,<6.0)", "pytest-xdist (>=1.32.0,<2.0.0)", "pytest-sugar (>=0.9.4,<0.10.0)", "mypy (==0.910)", "black (>=19.10b0,<20.0b0)", "isort (>=5.0.6,<6.0.0)"]
+
+[[package]]
 name = "typing-extensions"
 version = "3.10.0.2"
 description = "Backported and Experimental Type Hints for Python 3.5+"
@@ -702,8 +724,8 @@ click = [
     {file = "click-7.1.2.tar.gz", hash = "sha256:d2b5255c7c6349bc1bd1e59e08cd12acbbd63ce649f2588755783aa94dfb6b1a"},
 ]
 cloudpickle = [
-    {file = "cloudpickle-1.6.0-py3-none-any.whl", hash = "sha256:3a32d0eb0bc6f4d0c57fbc4f3e3780f7a81e6fee0fa935072884d58ae8e1cc7c"},
-    {file = "cloudpickle-1.6.0.tar.gz", hash = "sha256:9bc994f9e9447593bd0a45371f0e7ac7333710fcf64a4eb9834bf149f4ef2f32"},
+    {file = "cloudpickle-2.0.0-py3-none-any.whl", hash = "sha256:6b2df9741d06f43839a3275c4e6632f7df6487a1f181f5f46a052d3c917c3d11"},
+    {file = "cloudpickle-2.0.0.tar.gz", hash = "sha256:5cd02f3b417a783ba84a4ec3e290ff7929009fe51f6405423cfccfadd43ba4a4"},
 ]
 deprecated = [
     {file = "Deprecated-1.2.13-py2.py3-none-any.whl", hash = "sha256:64756e3e14c8c5eea9795d93c524551432a0be75629f8f29e67ab8caf076c76d"},
@@ -791,7 +813,7 @@ jsonschema = [
     {file = "jsonschema-3.2.0.tar.gz", hash = "sha256:c8a85b28d377cc7737e46e2d9f2b4f44ee3c0e1deac6bf46ddefc7187d30797a"},
 ]
 kfp = [
-    {file = "kfp-1.8.2.tar.gz", hash = "sha256:86007863a24e1589c30b7077225a98a87c6cdfa212300071010206a6c76a6f9b"},
+    {file = "kfp-1.8.5.tar.gz", hash = "sha256:fdafd5ff3fd12a550ed2a1f9e0dc49bdcb4aa83001263218246dd10a727d1824"},
 ]
 kfp-pipeline-spec = [
     {file = "kfp_pipeline_spec-0.1.11-py3-none-any.whl", hash = "sha256:e5a9bc878cf35df3caab4590ae9ea751b30f13183ab04dfd43c1ef42f089b554"},
@@ -988,6 +1010,10 @@ tabulate = [
 ]
 termcolor = [
     {file = "termcolor-1.1.0.tar.gz", hash = "sha256:1d6d69ce66211143803fbc56652b41d73b4a400a2891d7bf7a1cdf4c02de613b"},
+]
+typer = [
+    {file = "typer-0.4.0-py3-none-any.whl", hash = "sha256:d81169725140423d072df464cad1ff25ee154ef381aaf5b8225352ea187ca338"},
+    {file = "typer-0.4.0.tar.gz", hash = "sha256:63c3aeab0549750ffe40da79a1b524f60e08a2cbc3126c520ebf2eeaf507f5dd"},
 ]
 typing-extensions = [
     {file = "typing_extensions-3.10.0.2-py2-none-any.whl", hash = "sha256:d8226d10bc02a29bcc81df19a26e56a9647f8b0a6d4a83924139f4a8b01f17b7"},

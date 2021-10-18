@@ -1,7 +1,8 @@
-from os import error
 from absl import app
 from absl import flags
-import logging
+
+from utils import get_logger
+logger = get_logger(__name__)
 
 FLAGS = flags.FLAGS
 flags.DEFINE_string(
@@ -14,9 +15,9 @@ def main(argv):
         raise app.UsageError("Too many command-line arguments.")
     
     if FLAGS.message:
-        logging.INFO(FLAGS.message)
+        logger.info(FLAGS.message)
     else:
-        logging.ERROR("No massage error.")
+        logger.error("No massage error.")
         exit(-1)
 
 if __name__ == "__main__":

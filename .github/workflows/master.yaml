@@ -8,6 +8,9 @@ on:
 env:
   GCP_PROJECT: ${{ secrets.GCP_PROJECT_ID }}
   GCP_REGION: ${{ secrets.GCP_REGION }}
+  GCP_SERVICE_ACCOUNT_KEY: ${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}
+  GCP_SERVICE_ACCOUNT_NAME: ${{ secrets.GCP_SERVICE_ACCOUNT_NAME }}
+  GOOGLE_APPLICATION_CREDENTIALS: "searvice-account.json"
 
 jobs:
   test:
@@ -66,23 +69,19 @@ jobs:
           poetry env use python3.9
           poetry install
       
-      - name: Download pipeline package
+      - name: Run pipeline
         run: |
-          SHA=$(git rev-parse HEAD^2)
-          CMD='gsutil ls gs://mitene-github-actions/pkg/'${SHA}
-          if eval "$CMD"; then
-            gsutil cp -r "gs://mitene-github-actions/pkg/"${SHA}"/*" ./
-          fi
-      
-      - name: Deploy pipeline and run
-        run: |
-          targets=$(ls | grep pipeline.tar.gz || echo "")
-          for target in $targets; do
+          echo $GCP_SERVICE_ACCOUNT_KEY > service-account.json
+          cat .github/workflows/build-targets.txt | while read target
+          do
+            if [ "${target:0:9}" = "pipelines" ]; then
               echo "**********************************************"
-              echo "Deploy $target"
+              echo "Run $target"
               echo "**********************************************"
               pipeline_name=$(basename $target .tar.gz)
-              portry run python .github/workflows/helper.py deploy-pipeline \
-                --package_path "$target" --pipeline_name "$pipeline_name" --github_sha "$GITHUB_SHA" \
-                --is_master
+              package_name=${pipeline_name}.json
+              poetry run python .github/workflows/helper.py run-pipeline \
+                --package_path "$package_name" --pipeline_name "$pipeline_name" \
+                --github_sha "$GITHUB_SHA"
+            fi
           done

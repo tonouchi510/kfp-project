@@ -1,0 +1,23 @@
+version: 1
+formatters:
+  default:
+    format: '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+  debug:
+    format: '%(asctime)s - %(name)s - %(funcName)s - %(levelname)s - %(message)s'
+handlers:
+  console:
+    class: logging.StreamHandler
+    level: INFO
+    formatter: default
+    stream: ext://sys.stdout
+  console_debug:
+    class: logging.StreamHandler
+    level: DEBUG
+    formatter: debug
+    stream: ext://sys.stdout
+#loggers:
+  # loggerを利用するコンポーネント (helpers配下など) をここで定義する
+  # 独自の設定が必要無い場合は `propagate: yes` としておく
+root:
+  level: DEBUG
+  handlers: [console_debug]
