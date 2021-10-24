@@ -6,4 +6,4 @@
 #
 # pipelines/hello-world-pipeline
 # pipelines/dataset-pipeline
-# pipelines/training-pipeline
+# pipelines/training-cls-pipeline
