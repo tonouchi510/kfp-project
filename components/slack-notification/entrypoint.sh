@@ -7,8 +7,6 @@ echo "              ==    Slack Notification Component   ==                     
 echo "              =======================================                     "
 echo "                                                                          "
 
-PROJECT_ID=huroshotoku
-
 for OPT in "$@"
 do
   case "$OPT" in
@@ -41,7 +39,7 @@ do
 done
 
 # WebHookのURL
-URL=$(gcloud secrets versions access latest --project=${PROJECT_ID} --secret="kfp-slack-webhook-url" --quiet)
+URL=$(gcloud secrets versions access latest --secret="kfp-slack-webhook-url" --quiet)
 # 送信先のチャンネル
 CHANNEL=${CHANNEL:-'#dev-notify'}
 # botの名前

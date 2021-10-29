@@ -1,7 +1,7 @@
 from absl import app
 from absl import flags
 
-from utils import get_logger
+from utils.logger import get_logger
 logger = get_logger(__name__)
 
 FLAGS = flags.FLAGS

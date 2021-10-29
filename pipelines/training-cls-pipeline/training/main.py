@@ -4,9 +4,9 @@ from typing import List
 import numpy as np
 import tensorflow as tf
 from absl import app, flags
-from utils import Training, get_labels, get_tfrecord_dataset
-from utils import preprocess_image, TFRECORD_FEATURES
-from utils import get_logger
+from utils.trainer import Training, get_labels, get_tfrecord_dataset
+from utils.data import preprocess_image, TFRECORD_FEATURES
+from utils.logger import get_logger
 from tensorflow.python.keras.engine.functional import Functional
 
 logger = get_logger(__name__)
