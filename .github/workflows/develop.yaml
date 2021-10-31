@@ -10,7 +10,7 @@ env:
   GCP_REGION: ${{ secrets.GCP_REGION }}
   PIPELINE_ROOT: ${{ secrets.PIPELINE_ROOT }}
   GCP_SERVICE_ACCOUNT_KEY: ${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}
-  GCP_SERVICE_ACCOUNT_NAME: ${{ secrets.GCP_SERVICE_ACCOUNT_NAME }}
+  VERTEX_SERVICE_ACCOUNT_NAME: ${{ secrets.VERTEX_SERVICE_ACCOUNT_NAME }}
   GOOGLE_APPLICATION_CREDENTIALS: "searvice-account.json"
 
 jobs:
@@ -73,11 +73,11 @@ jobs:
                 component_name=${component_name//\//-}
                 IMAGE_NAME=gcr.io/${{ secrets.GCP_PROJECT_ID }}/${component_name}
                 echo "**********************************************"
-                echo "Docker Build & Push $IMAGE_NAME:${GITHUB_SHA::7}"
+                echo "Docker Build & Push $IMAGE_NAME:${GITHUB_SHA}"
                 echo "**********************************************"
-                docker build -f $target/Dockerfile -t $IMAGE_NAME:${GITHUB_SHA::7} .
-                docker tag $IMAGE_NAME:${GITHUB_SHA::7} $IMAGE_NAME:latest
-                docker push $IMAGE_NAME:${GITHUB_SHA::7}
+                docker build -f $target/Dockerfile -t $IMAGE_NAME:${GITHUB_SHA} .
+                docker tag $IMAGE_NAME:${GITHUB_SHA} $IMAGE_NAME:latest
+                docker push $IMAGE_NAME:${GITHUB_SHA}
                 docker push $IMAGE_NAME:latest
                 docker rmi -f $IMAGE_NAME
               else
@@ -88,11 +88,11 @@ jobs:
                   component_name=${component_name//\//-}
                   IMAGE_NAME=gcr.io/${{ secrets.GCP_PROJECT_ID }}/${component_name}
                   echo "**********************************************"
-                  echo "Docker Build & Push $IMAGE_NAME:${GITHUB_SHA::7}"
+                  echo "Docker Build & Push $IMAGE_NAME:${GITHUB_SHA}"
                   echo "**********************************************"
-                  docker build -f $component_dir/Dockerfile -t $IMAGE_NAME:${GITHUB_SHA::7} .
-                  docker tag $IMAGE_NAME:${GITHUB_SHA::7} $IMAGE_NAME:latest
-                  docker push $IMAGE_NAME:${GITHUB_SHA::7}
+                  docker build -f $component_dir/Dockerfile -t $IMAGE_NAME:${GITHUB_SHA} .
+                  docker tag $IMAGE_NAME:${GITHUB_SHA} $IMAGE_NAME:latest
+                  docker push $IMAGE_NAME:${GITHUB_SHA}
                   docker push $IMAGE_NAME:latest
                   docker rmi -f $IMAGE_NAME
                 done
@@ -133,9 +133,9 @@ jobs:
       - name: Update component specs
         run: |
           echo "**********************************************"
-          echo "Update component image_tag to ${GITHUB_SHA::7}"
+          echo "Update component image_tag to ${GITHUB_SHA}"
           echo "**********************************************"
-          poetry run python .github/workflows/helper.py update-specs --image_tag "${GITHUB_SHA::7}"
+          poetry run python .github/workflows/helper.py update-specs --image_tag "${GITHUB_SHA}"
       
       - name: Compile and upload pipeline
         run: |
@@ -153,8 +153,8 @@ jobs:
               echo "**********************************************"
               pipeline_name=$(basename $pipeline_file .py)
               echo ${pipeline_name}.json
-              echo {{ secrets.PIPELINE_ROOT }}/${GITHUB_SHA::7}/
-              gsutil cp ${pipeline_name}.json ${PIPELINE_ROOT}/${GITHUB_SHA::7}/
+              echo {{ secrets.PIPELINE_ROOT }}/${GITHUB_SHA}/
+              gsutil cp ${pipeline_name}.json ${PIPELINE_ROOT}/${GITHUB_SHA}/
             fi
           done
 

@@ -20,7 +20,7 @@ import fire
 from kfp.v2.google.client import AIPlatformClient
 
 PROJECT_ID = os.environ.get("GCP_PROJECT")
-SERVICE_ACCOUNT_NAME = os.environ.get("GCP_SERVICE_ACCOUNT_NAME")
+SERVICE_ACCOUNT_NAME = os.environ.get("VERTEX_SERVICE_ACCOUNT_NAME")
 PIPELINE_DIR = "pipelines"
 
 

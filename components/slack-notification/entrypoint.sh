@@ -7,27 +7,15 @@ echo "              ==    Slack Notification Component   ==                     
 echo "              =======================================                     "
 echo "                                                                          "
 
-PROJECT_ID=huroshotoku
-
 for OPT in "$@"
 do
   case "$OPT" in
-    -h|--help)
-      echo "-p: pipeline name"
-      echo "-j: job id (dataset file name)"
-      echo "--msg: message string to notify slack."
-      exit
-      ;;
-    -p|--pipeline_name)
+    --pipeline_name)
       export PIPELINE_NAME=$2
       shift 2
       ;;
-    -j|--job_id)
+    --job_id)
       export JOB_ID=$2
-      shift 2
-      ;;
-    --message)
-      export MESSAGE=$2
       shift 2
       ;;
     -\?)
@@ -41,25 +29,22 @@ do
 done
 
 # WebHookのURL
-URL=$(gcloud secrets versions access latest --project=${PROJECT_ID} --secret="kfp-slack-webhook-url" --quiet)
+URL=$(gcloud secrets versions access latest --project=furyu-nbiz --secret="kfp-slack-webhook-url" --quiet)
 # 送信先のチャンネル
 CHANNEL=${CHANNEL:-'#dev-notify'}
 # botの名前
 BOTNAME=${BOTNAME:-'kfp-bot'}
 # 絵文字
 EMOJI=${EMOJI:-':moyai:'}
-# 見出し
-HEAD=${HEAD:-"[${PIPELINE_NAME}: ${JOB_ID}]\n"}
-
 # メッセージをシンタックスハイライト付きで取得
-MESSAGE='```'${MESSAGE}'```'
+MESSAGE="Done ${PIPELINE_NAME}: ${JOB_ID}"
 
 # json形式に整形
 payload="payload={
     \"channel\": \"${CHANNEL}\",
     \"username\": \"${BOTNAME}\",
     \"icon_emoji\": \"${EMOJI}\",
-    \"text\": \"${HEAD}${MESSAGE}\"
+    \"text\": \"${MESSAGE}\"
 }"
 
 # 送信
