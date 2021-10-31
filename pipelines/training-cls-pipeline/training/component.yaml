@@ -5,13 +5,13 @@ implementation:
     image: gcr.io/
     command: [
       poetry, run,
-      python3 main.py,
+      python, main.py,
       --pipeline, {inputValue: pipeline},
       --bucket, {inputValue: bucket},
       --job_id, {inputValue: job_id},
       --global_batch_size, {inputValue: global_batch_size},
       --epochs, {inputValue: epochs},
-      --learning_rate, {inputValue: learning_size},
+      --learning_rate, {inputValue: learning_rate},
       --dataset, {inputValue: dataset},
       --model_type, {inputValue: model_type},
       --input_size, {inputValue: input_size},
@@ -26,6 +26,6 @@ inputs:
 - {name: learning_rate, type: Float}
 - {name: dataset, type: String}
 - {name: model_type, type: String}
-- {name: input_size, type: String}
+- {name: input_size, type: Integer}
 outputs:
 - {name: out}

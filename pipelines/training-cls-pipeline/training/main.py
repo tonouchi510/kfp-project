@@ -96,7 +96,9 @@ def main(argv):
     artifacts_dir = f"gs://{FLAGS.bucket}/artifacts/{FLAGS.pipeline}/{FLAGS.job_id}/training"
 
     # この辺もパイプラインパラメータ化するのもアリ
-    num_classes, label_list = get_labels(FLAGS.dataset)
+    #num_classes, label_list = get_labels(FLAGS.dataset)
+    num_classes = 100
+    label_list = []
     optimizer = tf.keras.optimizers.Adam(learning_rate=FLAGS.learning_rate)
     loss = "sparse_categorical_crossentropy"
 

@@ -118,7 +118,10 @@ def main(operation, **args):
             raise ValueError("github_sha has to be supplied.")
         github_sha = args["github_sha"]
 
-        is_debug = args["debug"]
+        if "debug" not in args:
+            is_debug = False
+        else:
+            is_debug = True
 
         run_pipeline(package_path, pipeline_name, github_sha, is_debug)
 
@@ -133,7 +136,10 @@ def main(operation, **args):
             raise ValueError('github_sha has to be supplied.')
         github_sha = args['github_sha']
 
-        is_debug = args["debug"]
+        if "debug" not in args:
+            is_debug = False
+        else:
+            is_debug = True
 
         params = read_settings(pipeline_dir, github_sha, is_debug)
         print(params)

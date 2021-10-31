@@ -6,8 +6,8 @@ ENV PATH /root/.local/bin:$PATH
 
 WORKDIR /workspace
 COPY utils ./utils
-COPY pipelines/training-pipeline/training/* ./
-COPY config/logging.yaml ./config/logging.yaml
+COPY pipelines/training-cls-pipeline/training/* ./
+COPY configs/logging.yaml ./configs/logging.yaml
 
 RUN apt-get update && \
     DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
