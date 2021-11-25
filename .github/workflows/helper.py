@@ -123,7 +123,7 @@ def main(operation, **args):
             raise ValueError("version has to be supplied.")
         version = args["version"]
 
-        is_debug = args["debug"]
+        is_debug = True if "debug" in args else False
 
         run_pipeline(package_path, pipeline_name, version, is_debug)
 
@@ -138,7 +138,7 @@ def main(operation, **args):
             raise ValueError("github_sha has to be supplied.")
         version = args["version"]
 
-        is_debug = args["debug"]
+        is_debug = True if "debug" in args else False
 
         params = read_settings(pipeline_dir, version, is_debug)
         print(params)
