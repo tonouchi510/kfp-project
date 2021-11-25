@@ -17,6 +17,7 @@ import yaml
 import os
 import pathlib
 import fire
+import time
 from kfp.v2.google.client import AIPlatformClient
 
 PROJECT_ID = os.environ.get("GCP_PROJECT")
@@ -24,40 +25,38 @@ SERVICE_ACCOUNT_NAME = os.environ.get("VERTEX_SERVICE_ACCOUNT_NAME")
 PIPELINE_DIR = "pipelines"
 
 
-def update_component_spec(image_tag: str):
-    """Update the image in the component.yaml files given the repo_url and image_tag."""
+def update_component_spec(target_dir: str, image_tag: str):
+    """Update the image in the component.yaml files.
 
-    # 共通イメージ
-    for d in ["base", "components"]:
-        targets = pathlib.Path(d).glob("*")
-        for target_dir in targets:
-            for spec_path in pathlib.Path(target_dir).glob("component.yaml"):
-                spec = yaml.safe_load(pathlib.Path(spec_path).read_text())
-                image_name = spec["implementation"]["container"]["image"]
-                image_name = image_name.replace("xxxxx", PROJECT_ID)
-                spec["implementation"]["container"]["image"] = image_name
-                pathlib.Path(spec_path).write_text(yaml.dump(spec))
-                print(f"Component {image_name} specs updated.")
+    Args:
+        target_dir (str): pipeline_dir.
+            e.g. pipelines/xxxx-pipelie or components.
+        image_tag (str): docker image tag.
+    """
+    for spec_path in pathlib.Path("components").glob("*/component.yaml"):
+        spec = yaml.safe_load(pathlib.Path(spec_path).read_text())
+        image_name = os.path.dirname(str(spec_path)).replace("components/", "")
+        full_image_name = f"gcr.io/{PROJECT_ID}/{image_name}:latest"
+        spec["implementation"]["container"]["image"] = full_image_name
+        pathlib.Path(spec_path).write_text(yaml.dump(spec))
+        print(f"Component {image_name} specs updated.")
 
-    # pipelines 配下
-    targets = pathlib.Path("pipelines").glob("*-pipeline")
-    for target_dir in targets:
-        for spec_path in pathlib.Path(target_dir).glob("*/component.yaml"):
-            spec = yaml.safe_load(pathlib.Path(spec_path).read_text())
-            image_name = os.path.dirname(str(spec_path)).replace("pipelines/", "").replace("/", "-")
-            full_image_name = f"gcr.io/{PROJECT_ID}/{image_name}:{image_tag}"
-            spec["implementation"]["container"]["image"] = full_image_name
-            pathlib.Path(spec_path).write_text(yaml.dump(spec))
-            print(f"Component {image_name} specs updated. Image: {full_image_name}")
+    for spec_path in pathlib.Path(target_dir).glob("*/component.yaml"):
+        spec = yaml.safe_load(pathlib.Path(spec_path).read_text())
+        image_name = os.path.dirname(str(spec_path)).replace("pipelines/", "").replace("/", "-")
+        full_image_name = f"gcr.io/{PROJECT_ID}/{image_name}:{image_tag}"
+        spec["implementation"]["container"]["image"] = full_image_name
+        pathlib.Path(spec_path).write_text(yaml.dump(spec))
+        print(f"Component {image_name} specs updated. Image: {full_image_name}")
 
 
-def read_settings(pipeline_name: str, github_sha: str, is_debug: bool):
+def read_settings(pipeline_name: str, version: str, is_debug: bool):
     """Read all the parameter values from the settings.yaml file."""
     if is_debug:
-        job_id = f"debug-{github_sha}"
+        job_id = f"debug-{version}"
         settings_file = os.path.join(PIPELINE_DIR, pipeline_name, "settings.debug.yaml")
     else:
-        job_id = f"{pipeline_name}-{github_sha}"
+        job_id = f"{pipeline_name}-{version}"
         settings_file = os.path.join(PIPELINE_DIR, pipeline_name, "settings.yaml")
     flat_settings = dict()
     setting_sections = yaml.safe_load(pathlib.Path(settings_file).read_text())
@@ -70,21 +69,23 @@ def read_settings(pipeline_name: str, github_sha: str, is_debug: bool):
 def run_pipeline(
     kfp_package_path: str,
     pipeline_name: str,
-    github_sha: str,
+    version: str,
     is_debug: bool
 ) -> None:
     """Deploy and run the givne kfp_package_path."""
+    t = int(time.time())
+    job_id = f"debug-{version}-{t}" if is_debug else f"{pipeline_name}-{version}-{t}"
+    settings = read_settings(pipeline_name, version, is_debug)
 
-    client = AIPlatformClient(
-        project_id=os.environ.get("GCP_PROJECT"), region=os.environ.get("GCP_REGION"))
-    settings = read_settings(pipeline_name, github_sha, is_debug)
-    job_id = f"debug-{github_sha}" if is_debug else f"{pipeline_name}-{github_sha}"
-
+    print(f"Run {job_id}")
     try:
+        client = AIPlatformClient(
+            project_id=os.environ.get("GCP_PROJECT"), region=os.environ.get("GCP_REGION"))
+
         response = client.create_run_from_job_spec(
             kfp_package_path,
             job_id=job_id,
-            pipeline_root=f"{os.environ.get('PIPELINE_ROOT')}/{github_sha}",
+            pipeline_root=f"{os.environ.get('PIPELINE_ROOT')}/{version}",
             parameter_values=settings,
             service_account=SERVICE_ACCOUNT_NAME
         )
@@ -101,11 +102,15 @@ def main(operation, **args):
         image_tag = "latest"
         if "image_tag" in args:
             image_tag = args["image_tag"]
-        update_component_spec(image_tag)
+
+        if "target_dir" in args:
+            target_dir = args["target_dir"]
+
+        update_component_spec(target_dir, image_tag)
 
     # Run Pipeline
     elif operation == "run-pipeline":
-        print('Running Kubeflow pipeline...')
+        print("Running Kubeflow pipeline...")
         if "package_path" not in args:
             raise ValueError("package_path has to be supplied.")
         package_path = args["package_path"]
@@ -114,34 +119,34 @@ def main(operation, **args):
             raise ValueError("pipeline_name has to be supplied.")
         pipeline_name = args["pipeline_name"]
 
-        if "github_sha" not in args:
-            raise ValueError("github_sha has to be supplied.")
-        github_sha = args["github_sha"]
+        if "version" not in args:
+            raise ValueError("version has to be supplied.")
+        version = args["version"]
 
         is_debug = args["debug"]
 
-        run_pipeline(package_path, pipeline_name, github_sha, is_debug)
+        run_pipeline(package_path, pipeline_name, version, is_debug)
 
     # Check params
-    elif operation == 'read-settings':
-        print('Read pipeline params')
-        if 'pipeline_name' not in args:
-            raise ValueError('pipeline_name has to be supplied.')
-        pipeline_dir = args['pipeline_name']
+    elif operation == "read-settings":
+        print("Read pipeline params")
+        if "pipeline_name" not in args:
+            raise ValueError("pipeline_name has to be supplied.")
+        pipeline_dir = args["pipeline_name"]
 
-        if 'github_sha' not in args:
-            raise ValueError('github_sha has to be supplied.')
-        github_sha = args['github_sha']
+        if "version" not in args:
+            raise ValueError("github_sha has to be supplied.")
+        version = args["version"]
 
         is_debug = args["debug"]
 
-        params = read_settings(pipeline_dir, github_sha, is_debug)
+        params = read_settings(pipeline_dir, version, is_debug)
         print(params)
 
     else:
         raise ValueError(
-            'Invalid operation name: {}. Valid operations: update-specs | run-pipeline'.format(operation))
+            "Invalid operation name: {}. Valid operations: update-specs | run-pipeline".format(operation))
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     fire.Fire(main)

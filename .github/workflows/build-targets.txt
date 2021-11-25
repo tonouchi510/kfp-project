@@ -1,9 +1,0 @@
-# 上から順にビルドされるため、依存度の高いものほど上に書いておく
-# base/extractor
-#
-components/tb-observer
-components/slack-notification
-#
-pipelines/hello-world-pipeline
-# pipelines/dataset-pipeline
-# pipelines/training-cls-pipeline
