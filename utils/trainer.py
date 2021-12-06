@@ -8,33 +8,6 @@ from tensorflow.python.keras.callbacks import History
 from typing import Callable, Any
 from typing import List, Dict, Tuple
 import json
-from google.cloud import storage
-
-
-def get_labels(dataset: str, bucket_name: str) -> Tuple[int, List]:
-    """データセットの教師ラベルを取得する.
-
-    Args:
-        dataset (str): データセットのgcsパス
-        bucket_name (str): データセットが保存されているバケット名
-
-    Returns:
-        [int]: データセットのクラス数
-        [List]: ラベルのリスト
-    """
-    client = storage.Client()
-    bucket = client.bucket(bucket_name)
-
-    prefix = dataset.replace(f"gs://{bucket_name}/", "")
-    blob = bucket.blob(f"{prefix}/labels.txt")
-    blob.download_to_filename("labels.txt")
-
-    label_list = []
-    with open("labels.txt") as f:
-        label_list = [s.strip() for s in f.readlines()]
-    num_classes = len(label_list)
-
-    return num_classes, label_list
 
 
 def get_tfrecord_dataset(
@@ -76,16 +49,13 @@ def get_tfrecord_dataset(
 
 
 class Training:
-    def __init__(self, *,
-                 build_model_func: Callable,
-                 job_dir: str = "",
-                 artifacts_dir: str = "",
-                 use_tpu: bool = True,
-                 custom_model_class: Any = None,
-                 custom_objects: Dict = None,
-                 optimizer: Any = None,
-                 loss: Any = None,
-                 metrics: Any = None) -> None:
+    def __init__(
+        self, *,
+        build_model_func: Callable,
+        job_dir: str = "",
+        artifacts_dir: str = "",
+        use_tpu: bool = True
+    ) -> None:
         """トレーニングの初期設定を行う.
 
         TPUノードの管理、TPUStrategyの設定、モデルのロード、コンパイル、checkpointの復旧などを行う.
@@ -95,21 +65,12 @@ class Training:
             job_dir (str): job管理用のGCSパス. checkpointやlogの保存をする.
             artifacts_dir (str): 実験結果の保存先GCSパス.
             use_tpu (bool): トレーニングにTPUを使うかどうか.
-            custom_model_class (any): tf.keras.Modelのサブクラス.使用しない場合はNone.
-            optimizer (any): tf.keras.Model.compileに渡すoptimizer.
-            loss (any): tf.keras.Model.compileに渡すloss.
-            metrics (any): tf.keras.Model.compileに渡すmetricsのリスト.
         """
         # For job management
         self.job_dir = job_dir
         self.artifacts_dir = artifacts_dir
         self.use_tpu = use_tpu
         self.last_epoch, self.last_checkpoint = self._get_metadata()
-
-        self.custom_objects = dict()
-        self.custom_objects["loss_func"] = loss
-        if custom_objects:
-            self.custom_objects.update(custom_objects)
 
         if self.use_tpu:
             # Tpu cluster setup
@@ -120,41 +81,20 @@ class Training:
 
             # Load model in distribute_strategy scope
             with self.distribute_strategy.scope():
-                optimizer = tf.keras.optimizers.Adam(learning_rate=0.001)
-                self._setup_model(build_model=build_model_func,
-                                  custom_model_class=custom_model_class,
-                                  optimizer=optimizer,
-                                  loss=loss,
-                                  metrics=metrics)
+                self._setup_model(build_model=build_model_func)
         else:
-            self._setup_model(build_model=build_model_func,
-                              custom_model_class=custom_model_class,
-                              optimizer=optimizer,
-                              loss=loss,
-                              metrics=metrics)
+            self._setup_model(build_model=build_model_func)
 
         tboard_callback = tf.keras.callbacks.TensorBoard(
             log_dir=f"{self.job_dir}/logs", histogram_freq=1)
         self.callbacks = [tboard_callback]
 
-    def _setup_model(self, build_model: Callable, custom_model_class,
-                     optimizer, loss, metrics) -> None:
+    def _setup_model(self, build_model: Callable) -> None:
         if self.last_epoch == 0:
             self.model = build_model()
-            self.model.compile(optimizer=optimizer,
-                               loss=loss,
-                               metrics=metrics)
         else:
             checkpoint = f"{self.job_dir}/checkpoints/{self.last_checkpoint}"
-            self.model = tf.keras.models.load_model(
-                checkpoint, custom_objects=self.custom_objects)
-            optimizer = self.model.optimizer
-
-            if custom_model_class:
-                self.model = custom_model_class(self.model.inputs, self.model.outputs)
-            self.model.compile(optimizer=optimizer,
-                               loss=loss,
-                               metrics=metrics)
+            self.model = tf.keras.models.load_model(checkpoint)
 
     def _get_metadata(self) -> Tuple[int, str]:
         if file_io.file_exists_v2(f"{self.job_dir}/job_meta.json"):
