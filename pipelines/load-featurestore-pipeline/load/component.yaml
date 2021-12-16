@@ -1,0 +1,26 @@
+name: load
+implementation:
+  container:
+    image: gcr.io/
+    command: [
+      python3, main.py,
+      --project_id, {inputValue: project_id},
+      --job_id, {inputValue: job_id},
+      --bucket_name, {inputValue: bucket_name},
+      --location, {inputValue: location},
+      --featurestore_id, {inputValue: featurestore_id},
+      --entity_type_id, {inputValue: entity_type_id},
+      --entity_type_description, {inputValue: entity_type_description},
+      --source_blob_name, {inputValue: source_blob_name},
+      --api_endpoint, {inputValue: api_endpoint},
+    ]
+inputs:
+- {name: project_id, type: String}
+- {name: job_id, type: String}
+- {name: bucket_name, type: String}
+- {name: location, type: String}
+- {name: featurestore_id, type: String}
+- {name: entity_type_id, type: String}
+- {name: entity_type_description, type: String} 
+- {name: source_blob_name, type: String}
+- {name: api_endpoint, type: String}
