@@ -90,6 +90,19 @@ jobs:
             gcr.io/${{ env.GCP_PROJECT }}/${{ env.PIPELINE_NAME }}-load:latest
           cache-to: type=inline
       
+      - name: Build and push create-entity component
+        id: docker_build
+        uses: docker/build-push-action@v2
+        with:
+          file: ./pipelines/${{ env.PIPELINE_NAME }}/create-entity/Dockerfile
+          push: true
+          tags: |
+            gcr.io/${{ env.GCP_PROJECT }}/${{ env.PIPELINE_NAME }}-create-entity:${{ env.DOCKER_TAG }}
+          cache-from: |
+            gcr.io/${{ env.GCP_PROJECT }}/${{ env.PIPELINE_NAME }}-create-entity:${{ env.DOCKER_TAG }}
+            gcr.io/${{ env.GCP_PROJECT }}/${{ env.PIPELINE_NAME }}-create-entity:latest
+          cache-to: type=inline
+      
   compile-pipeline-and-run:
     needs: build-docker-image-and-push
     runs-on: ubuntu-20.04
