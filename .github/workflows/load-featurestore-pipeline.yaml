@@ -11,7 +11,7 @@ on:
     branches:
       - main
     paths:
-      - "pipelines/load-featurestore/**/*"
+      - "pipelines/load-featurestore-pipeline/**/*"
       - ".github/workflows/load-featurestore-pipeline-build.yaml"
 
 env:
@@ -78,7 +78,7 @@ jobs:
           echo "DOCKER_TAG=${docker_tag}" >>$GITHUB_ENV
         
       - name: Build and push load component
-        id: docker_build
+        id: docker_build_load
         uses: docker/build-push-action@v2
         with:
           file: ./pipelines/${{ env.PIPELINE_NAME }}/load/Dockerfile
@@ -91,7 +91,7 @@ jobs:
           cache-to: type=inline
       
       - name: Build and push create-entity component
-        id: docker_build
+        id: docker_build_create_entity
         uses: docker/build-push-action@v2
         with:
           file: ./pipelines/${{ env.PIPELINE_NAME }}/create-entity/Dockerfile

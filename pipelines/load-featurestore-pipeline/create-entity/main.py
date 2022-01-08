@@ -6,8 +6,8 @@ from typing import List
 
 FLAGS = flags.FLAGS
 flags.DEFINE_string(
-    "project_id", "",
-    "id of gcp project.")
+    "pipeline_name", "",
+    "name of pipeline.")
 
 flags.DEFINE_string(
     "job_id", "",

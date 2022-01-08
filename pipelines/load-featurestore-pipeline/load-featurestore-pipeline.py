@@ -9,7 +9,8 @@ component_store = kfp.components.ComponentStore(
     local_search_paths=["pipelines/load-featurestore-pipeline", "components"])
 
 # Create component factories
-load_op = component_store.load_component("load")
+# load_op = component_store.load_component("load")
+create_entity_op = component_store.load_component("create-entity")
 slack_notification_op = component_store.load_component("slack-notification")
 
 
@@ -26,18 +27,18 @@ def pipeline(
     entity_type_id: str = "",
     entity_type_description: str = "",
     source_blob_name: str = "",
-    api_endpoint: str = ""
+    api_endpoint: str = "",
+    bq_dataset_id: str = "",
+    bq_table_name: str = ""
 ):
     with dsl.ExitHandler(
         exit_op=slack_notification_op(
-            pipeline=PIPELINE_NAME,
-            bucket=bucket_name,
-            jobid=job_id,
-            message="Status: {{workflow.status}}"
+            pipeline_name=PIPELINE_NAME,
+            job_id=job_id
         )
     ):
-        load_op(
-            pipeline_id=PIPELINE_NAME,
+        create_entity_op(
+            pipeline_name=PIPELINE_NAME,
             job_id=job_id,
             bucket_name=bucket_name,
             location=location,
@@ -45,7 +46,9 @@ def pipeline(
             entity_type_id=entity_type_id,
             entity_type_description=entity_type_description,
             source_blob_name=source_blob_name,
-            api_endpoint=api_endpoint
+            api_endpoint=api_endpoint,
+            bq_dataset_id=bq_dataset_id,
+            bq_table_name=bq_table_name
         ).apply(gcp.use_preemptible_nodepool())\
             .set_retry(num_retries=2)
 

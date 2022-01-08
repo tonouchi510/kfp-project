@@ -4,7 +4,7 @@ implementation:
     image: gcr.io/
     command: [
       python3, main.py,
-      --project_id, {inputValue: project_id},
+      --project_name, {inputValue: project_name},
       --job_id, {inputValue: job_id},
       --bucket_name, {inputValue: bucket_name},
       --location, {inputValue: location},
@@ -15,7 +15,7 @@ implementation:
       --api_endpoint, {inputValue: api_endpoint},
     ]
 inputs:
-- {name: project_id, type: String}
+- {name: project_name, type: String}
 - {name: job_id, type: String}
 - {name: bucket_name, type: String}
 - {name: location, type: String}

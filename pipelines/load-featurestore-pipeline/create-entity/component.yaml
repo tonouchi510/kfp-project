@@ -1,10 +1,10 @@
-name: load
+name: create_entity
 implementation:
   container:
     image: gcr.io/
     command: [
       python3, main.py,
-      --project_id, {inputValue: project_id},
+      --pipeline_name, {inputValue: pipeline_name},
       --job_id, {inputValue: job_id},
       --bucket_name, {inputValue: bucket_name},
       --location, {inputValue: location},
@@ -17,7 +17,7 @@ implementation:
       --bq_table_name, {inputValue: bq_table_name},
     ]
 inputs:
-- {name: project_id, type: String}
+- {name: pipeline_name, type: String}
 - {name: job_id, type: String}
 - {name: bucket_name, type: String}
 - {name: location, type: String}
