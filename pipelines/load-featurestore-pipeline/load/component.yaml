@@ -3,6 +3,7 @@ implementation:
   container:
     image: gcr.io/
     command: [
+      poetry, run,
       python3, main.py,
       --project_name, {inputValue: project_name},
       --job_id, {inputValue: job_id},

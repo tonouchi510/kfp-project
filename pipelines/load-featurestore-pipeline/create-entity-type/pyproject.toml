@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "load"
+name = "create-entity-type"
 version = "0.1.0"
 description = ""
 authors = ["tonouchi27 <tonouchi27@gmail.com>"]

@@ -1,9 +1,11 @@
-name: create_entity
+name: create_entity_type
 implementation:
   container:
     image: gcr.io/
     command: [
+      poetry, run,
       python3, main.py,
+      --project_id, {inputValue: project_id},
       --pipeline_name, {inputValue: pipeline_name},
       --job_id, {inputValue: job_id},
       --bucket_name, {inputValue: bucket_name},
@@ -11,12 +13,12 @@ implementation:
       --featurestore_id, {inputValue: featurestore_id},
       --entity_type_id, {inputValue: entity_type_id},
       --entity_type_description, {inputValue: entity_type_description},
-      --source_blob_name, {inputValue: source_blob_name},
       --api_endpoint, {inputValue: api_endpoint},
       --bq_dataset_id, {inputValue: bq_dataset_id},
-      --bq_table_name, {inputValue: bq_table_name},
+      --table_name, {inputValue: table_name},
     ]
 inputs:
+- {name: project_id, type: String}
 - {name: pipeline_name, type: String}
 - {name: job_id, type: String}
 - {name: bucket_name, type: String}
@@ -24,7 +26,6 @@ inputs:
 - {name: featurestore_id, type: String}
 - {name: entity_type_id, type: String}
 - {name: entity_type_description, type: String} 
-- {name: source_blob_name, type: String}
 - {name: api_endpoint, type: String}
 - {name: bq_dataset_id, type: String}
-- {name: bq_table_name, type: String}
+- {name: table_name, type: String}
