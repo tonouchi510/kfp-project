@@ -1,6 +1,8 @@
 from absl import app
 from absl import flags
 from google.cloud import aiplatform, bigquery 
+from google.api_core.exceptions import AlreadyExists
+import logging
 from typing import List
 
 
@@ -57,18 +59,22 @@ def create_entity_type(
     description: str = "sample entity type",
     timeout: int = 300,
 ) -> str:
-    create_entity_type_request = aiplatform.gapic.CreateEntityTypeRequest(
-        parent=parent,
-        entity_type_id=entity_type_id,
-        entity_type=aiplatform.gapic.EntityType(description=description),
-    )
-    lro_response = client.create_entity_type(request=create_entity_type_request)
-    print("Long running operation:", lro_response.operation.name)
-    create_entity_type_response = lro_response.result(timeout=timeout)
-    print("create_entity_type_response:", create_entity_type_response)
-
-    entity_type = f"{parent}/entityTypes/{entity_type_id}"
-    return entity_type
+    try:
+        create_entity_type_request = aiplatform.gapic.CreateEntityTypeRequest(
+            parent=parent,
+            entity_type_id=entity_type_id,
+            entity_type=aiplatform.gapic.EntityType(description=description),
+        )
+        lro_response = client.create_entity_type(request=create_entity_type_request)
+        logging.info("Long running operation:", lro_response.operation.name)
+        create_entity_type_response = lro_response.result(timeout=timeout)
+        logging.info("create_entity_type_response:", create_entity_type_response)
+    except AlreadyExists as e:
+        # 既に存在する場合は一応警告だけ出して処理継続
+        logging.warnning(e)
+    finally:
+        entity_type = f"{parent}/entityTypes/{entity_type_id}"
+        return entity_type
         
 
 

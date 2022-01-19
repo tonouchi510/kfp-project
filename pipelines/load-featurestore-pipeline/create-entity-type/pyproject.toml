@@ -10,6 +10,7 @@ absl-py = "^1.0.0"
 PyYAML = "^6.0"
 google-cloud-aiplatform = "^1.8.0"
 google-cloud-bigquery = "^2.31.0"
+google-api-core = "^2.4.0"
 
 [tool.poetry.dev-dependencies]
 
