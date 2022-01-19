@@ -57,21 +57,18 @@ def create_entity_type(
     description: str = "sample entity type",
     timeout: int = 300,
 ) -> str:
-    try:
-        create_entity_type_request = aiplatform.gapic.CreateEntityTypeRequest(
-            parent=parent,
-            entity_type_id=entity_type_id,
-            entity_type=aiplatform.gapic.EntityType(description=description),
-        )
-        lro_response = client.create_entity_type(request=create_entity_type_request)
-        print("Long running operation:", lro_response.operation.name)
-        create_entity_type_response = lro_response.result(timeout=timeout)
-        print("create_entity_type_response:", create_entity_type_response)
+    create_entity_type_request = aiplatform.gapic.CreateEntityTypeRequest(
+        parent=parent,
+        entity_type_id=entity_type_id,
+        entity_type=aiplatform.gapic.EntityType(description=description),
+    )
+    lro_response = client.create_entity_type(request=create_entity_type_request)
+    print("Long running operation:", lro_response.operation.name)
+    create_entity_type_response = lro_response.result(timeout=timeout)
+    print("create_entity_type_response:", create_entity_type_response)
 
-        entity_type = f"{parent}/entityTypes/{entity_type_id}"
-        return entity_type
-    except Exception as e:
-        print(e)
+    entity_type = f"{parent}/entityTypes/{entity_type_id}"
+    return entity_type
         
 
 
@@ -93,7 +90,7 @@ def batch_create_features(
     for i in range(len(schemas)):
         feature_request = aiplatform.gapic.CreateFeatureRequest(
             feature=aiplatform.gapic.Feature(
-                value_type=schemas[i].field_type,
+                value_type=convert_type(schemas[i].field_type),
                 description=schemas[i].description
             ),
             feature_id=schemas[i].name
@@ -115,6 +112,21 @@ def get_schema(dataset_id: str, table_name: str):
     table_ref = dataset_ref.table(table_name)
     table = client.get_table(table_ref)
     return table.schema
+
+
+def convert_type(value_type: str):
+    # まだBQのSchemaFieldの全てに対応している訳ではない
+    # TODO: 他の型の扱いについて考える.
+    if value_type == "STRING":
+        return aiplatform.gapic.Feature.ValueType.STRING
+    elif value_type == "INTEGER":
+        return aiplatform.gapic.Feature.ValueType.INT64
+    elif value_type == "FLOAT":
+        return aiplatform.gapic.Feature.ValueType.DOUBLE
+    elif value_type == "BOOL":
+        return aiplatform.gapic.Feature.ValueType.BOOL
+    else:
+        raise ValueError(value_type)
 
 
 def main(argv):
