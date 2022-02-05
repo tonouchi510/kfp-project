@@ -1,91 +1,70 @@
 # DLトレーニングで共通のロジック・モジュール
 
 import tensorflow as tf
-from tensorflow.python.lib.io import file_io
 from tensorflow.python.data.ops.readers import TFRecordDatasetV2
-from tensorflow.python.keras.engine.functional import Functional
 from tensorflow.python.keras.callbacks import History
-from typing import Callable, Any
-from typing import List, Dict, Tuple
-import json
 from google.cloud import storage
-
-
-def get_labels(dataset: str, bucket_name: str) -> Tuple[int, List]:
-    """データセットの教師ラベルを取得する.
-
-    Args:
-        dataset (str): データセットのgcsパス
-        bucket_name (str): データセットが保存されているバケット名
-
-    Returns:
-        [int]: データセットのクラス数
-        [List]: ラベルのリスト
-    """
-    client = storage.Client()
-    bucket = client.bucket(bucket_name)
-
-    prefix = dataset.replace(f"gs://{bucket_name}/", "")
-    blob = bucket.blob(f"{prefix}/labels.txt")
-    blob.download_to_filename("labels.txt")
-
-    label_list = []
-    with open("labels.txt") as f:
-        label_list = [s.strip() for s in f.readlines()]
-    num_classes = len(label_list)
-
-    return num_classes, label_list
+from typing import Callable, List
+import os
 
 
 def get_tfrecord_dataset(
     dataset_path: str,
     preprocessing: Callable,
     global_batch_size: int,
-    is_train: bool
+    split: str,
+    data_augmentation: Callable = lambda x: x,
 ) -> TFRecordDatasetV2:
+    """TFRecordからデータパイプラインを構築する.
+
+    Args:
+        dataset_path (str): 目的のTFRecordファイルが保存されているパス.
+        preprocessing (Callable): 適用する前処理関数.
+        global_batch_size (int): バッチサイズ(分散処理の場合は合計).
+        split (str): train or valid
+        data_augmentation (Callable, optional): データオーグメンテーション関数. Defaults to lambdax:x.
+
+    Raises:
+        FileNotFoundError: dataset_pathにファイルが存在しない場合.
+
+    Returns:
+        TFRecordDatasetV2: 定義済みのデータパイプライン.
+    """
     # Build a pipeline
+    file_names = tf.io.gfile.glob(
+        f"{dataset_path}/{split}-*.tfrec"
+    )
+    dataset = tf.data.TFRecordDataset(
+        file_names, num_parallel_reads=tf.data.AUTOTUNE)
+    if not file_names:
+        raise FileNotFoundError(f"Not found: {dataset}")
+
     option = tf.data.Options()
-    option.experimental_deterministic = False
-    
-    if is_train:
-        file_names = tf.io.gfile.glob(f"{dataset_path}/train-*.tfrec")
-        dataset = tf.data.TFRecordDataset(
-            file_names, num_parallel_reads=tf.data.AUTOTUNE)
-        dataset = (
-            dataset
-                .with_options(option)
-                .map(lambda example: preprocessing(example=example),
-                    num_parallel_calls=tf.data.AUTOTUNE)
-                .shuffle(512, reshuffle_each_iteration=True)
-                .batch(global_batch_size, drop_remainder=True)
-                .prefetch(tf.data.AUTOTUNE)
-        )
+    if split == "train":
+        option.experimental_deterministic = False
+        dataset = dataset.with_options(option) \
+            .map(lambda example: preprocessing(example=example), num_parallel_calls=tf.data.AUTOTUNE) \
+            .map(lambda x, *y: (data_augmentation(x), *y)) \
+            .shuffle(512, reshuffle_each_iteration=True) \
+            .batch(global_batch_size, drop_remainder=True) \
+            .prefetch(tf.data.AUTOTUNE)
     else:
-        file_names = tf.io.gfile.glob(f"{dataset_path}/valid-*.tfrec")
-        dataset = tf.data.TFRecordDataset(
-            file_names, num_parallel_reads=tf.data.AUTOTUNE)
-        dataset = (
-            dataset
-                .with_options(option)
-                .map(lambda example: preprocessing(example=example),
-                    num_parallel_calls=tf.data.AUTOTUNE)
-                .batch(global_batch_size, drop_remainder=False)
-                .prefetch(tf.data.AUTOTUNE)
-        )
+        option.experimental_deterministic = True
+        dataset = dataset.with_options(option) \
+            .map(lambda example: preprocessing(example=example), num_parallel_calls=tf.data.AUTOTUNE) \
+            .batch(global_batch_size, drop_remainder=False) \
+            .prefetch(tf.data.AUTOTUNE)
     return dataset
 
 
 class Training:
-    def __init__(self, *,
-                 build_model_func: Callable,
-                 job_dir: str = "",
-                 artifacts_dir: str = "",
-                 use_tpu: bool = True,
-                 custom_model_class: Any = None,
-                 custom_objects: Dict = None,
-                 optimizer: Any = None,
-                 loss: Any = None,
-                 metrics: Any = None) -> None:
+    def __init__(
+        self,
+        build_model_func: Callable,
+        job_dir: str,
+        artifacts_dir: str = "",
+        use_tpu: bool = True,
+    ) -> None:
         """トレーニングの初期設定を行う.
 
         TPUノードの管理、TPUStrategyの設定、モデルのロード、コンパイル、checkpointの復旧などを行う.
@@ -95,21 +74,12 @@ class Training:
             job_dir (str): job管理用のGCSパス. checkpointやlogの保存をする.
             artifacts_dir (str): 実験結果の保存先GCSパス.
             use_tpu (bool): トレーニングにTPUを使うかどうか.
-            custom_model_class (any): tf.keras.Modelのサブクラス.使用しない場合はNone.
-            optimizer (any): tf.keras.Model.compileに渡すoptimizer.
-            loss (any): tf.keras.Model.compileに渡すloss.
-            metrics (any): tf.keras.Model.compileに渡すmetricsのリスト.
         """
         # For job management
         self.job_dir = job_dir
         self.artifacts_dir = artifacts_dir
         self.use_tpu = use_tpu
-        self.last_epoch, self.last_checkpoint = self._get_metadata()
-
-        self.custom_objects = dict()
-        self.custom_objects["loss_func"] = loss
-        if custom_objects:
-            self.custom_objects.update(custom_objects)
+        self.last_epoch = self._get_last_epoch()
 
         if self.use_tpu:
             # Tpu cluster setup
@@ -120,72 +90,41 @@ class Training:
 
             # Load model in distribute_strategy scope
             with self.distribute_strategy.scope():
-                optimizer = tf.keras.optimizers.Adam(learning_rate=0.001)
-                self._setup_model(build_model=build_model_func,
-                                  custom_model_class=custom_model_class,
-                                  optimizer=optimizer,
-                                  loss=loss,
-                                  metrics=metrics)
+                self._setup_model(build_model=build_model_func)
         else:
-            self._setup_model(build_model=build_model_func,
-                              custom_model_class=custom_model_class,
-                              optimizer=optimizer,
-                              loss=loss,
-                              metrics=metrics)
+            self._setup_model(build_model=build_model_func)
 
-        tboard_callback = tf.keras.callbacks.TensorBoard(
-            log_dir=f"{self.job_dir}/logs", histogram_freq=1)
-        self.callbacks = [tboard_callback]
+        self.callbacks = [
+            tf.keras.callbacks.TensorBoard(log_dir=f"{self.job_dir}/logs", histogram_freq=1),
+            tf.keras.callbacks.TerminateOnNaN(),
+            tf.keras.callbacks.ModelCheckpoint(
+                filepath=os.path.join(self.job_dir, "checkpoints/{epoch:05d}.ckpt"),
+                save_weights_only=True,
+                save_freq="epoch"
+            )
+        ]
 
-    def _setup_model(self, build_model: Callable, custom_model_class,
-                     optimizer, loss, metrics) -> None:
+    def _setup_model(self, build_model: Callable) -> None:
         if self.last_epoch == 0:
             self.model = build_model()
-            self.model.compile(optimizer=optimizer,
-                               loss=loss,
-                               metrics=metrics)
         else:
-            checkpoint = f"{self.job_dir}/checkpoints/{self.last_checkpoint}"
-            self.model = tf.keras.models.load_model(
-                checkpoint, custom_objects=self.custom_objects)
-            optimizer = self.model.optimizer
+            checkpoint = f"{self.job_dir}/checkpoints/{self.last_epoch:0>5}.ckpt"
+            self.model = build_model(checkpoint=checkpoint)
 
-            if custom_model_class:
-                self.model = custom_model_class(self.model.inputs, self.model.outputs)
-            self.model.compile(optimizer=optimizer,
-                               loss=loss,
-                               metrics=metrics)
+    def _get_last_epoch(self) -> int:
+        client = storage.Client()
+        bucket_name = self.job_dir.split("/")[2]
+        dest = self.job_dir.replace(f"gs://{bucket_name}/", "")
+        blobs = client.list_blobs(bucket_name, prefix=f"{dest}/checkpoints")
+        checkpoints = [0]
+        for b in blobs:
+            epoch = int(b.name.replace(dest, "").split("/")[0])
+            checkpoints.append(epoch)
+        last_epoch = max(checkpoints)
+        return last_epoch
 
-    def _get_metadata(self) -> Tuple[int, str]:
-        if file_io.file_exists_v2(f"{self.job_dir}/job_meta.json"):
-            with file_io.FileIO(f"{self.job_dir}/job_meta.json", "r") as reader:
-                job_meta = json.load(reader)
-            return job_meta["last_epoch"], job_meta["last_checkpoint"]
-        else:
-            meta = {
-                "last_epoch": 0,
-                "last_checkpoint": "",
-            }
-            with file_io.FileIO(f"{self.job_dir}/job_meta.json", "w") as writer:
-                json.dump(meta, writer)
-            return 0, ""
-
-    def _save_metadata(self) -> None:
-        with file_io.FileIO(f"{self.job_dir}/job_meta.json", "r") as reader:
-            job_meta = json.load(reader)
-            job_meta["last_epoch"] = self.last_epoch
-            job_meta["last_checkpoint"] = self.last_checkpoint
-        with file_io.FileIO(f"{self.job_dir}/job_meta.json", "w+") as writer:
-            json.dump(job_meta, writer)
-
-    def model_summary(self) -> None:
-        self.model.summary()
-
-    def get_model_input_size(self) -> int:
-        return self.model.input_shape[1]
-
-    def add_callback(self, new_callback) -> None:
-        self.callbacks.append(new_callback)
+    def add_callbacks(self, callbacks: List) -> None:
+        self.callbacks.extend(callbacks)
 
     def run_train(
         self,
@@ -203,19 +142,13 @@ class Training:
             valid_ds (TFRecordDatasetV2): tensorflowのデータセットパイプライン（検証用）.
             epochs (int): トレーニングを回す合計エポック数.
         """
-        for epoch in range(self.last_epoch, epochs):
-            history = self.model.fit(train_ds, validation_data=valid_ds,
-                                     callbacks=self.callbacks,
-                                     initial_epoch=epoch,
-                                     epochs=epoch+1)
-
-            self.last_epoch += 1
-            self.last_checkpoint = f"{self.last_epoch:0>5}"
-            self.model.save(
-                f"{self.job_dir}/checkpoints/{self.last_checkpoint}", include_optimizer=True)
-            self._save_metadata()
-
+        history = self.model.fit(
+            train_ds,
+            validation_data=valid_ds,
+            callbacks=self.callbacks,
+            initial_epoch=self.last_epoch,
+            epochs=epochs
+        )
         if self.artifacts_dir:
             self.model.save(f"{self.artifacts_dir}/saved_model", include_optimizer=False)
-
         return history
