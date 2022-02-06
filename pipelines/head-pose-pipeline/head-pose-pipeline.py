@@ -31,10 +31,8 @@ def pipeline(
 ):
     with dsl.ExitHandler(
         exit_op=slack_notification_op(
-            pipeline=PIPELINE_NAME,
-            bucket=bucket,
-            jobid=job_id,
-            message="Status: {{workflow.status}}"
+            pipeline_name=PIPELINE_NAME,
+            job_id=job_id,
         )
     ):
         train_op(
@@ -56,8 +54,9 @@ def pipeline(
             .set_retry(num_retries=2)
 
         tensorboard_op(
+            pipeline_name=PIPELINE_NAME,
             bucket=bucket,
-            jobid=job_id,
+            job_id=job_id,
             log_dir="training/logs"
         ).set_display_name("tboard")\
             .apply(gcp.use_preemptible_nodepool())

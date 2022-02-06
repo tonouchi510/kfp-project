@@ -11,10 +11,10 @@ implementation:
       --job_id, {inputValue: job_id},
       --global_batch_size, {inputValue: global_batch_size},
       --epochs, {inputValue: epochs},
-      --learning_rate, {inputValue: learning_size},
+      --learning_rate, {inputValue: learning_rate},
       --dataset, {inputValue: dataset},
       --model_type, {inputValue: model_type},
-      --image_size, {inputValue: input_size},
+      --image_size, {inputValue: image_size},
     ]
     fileOutputs: {out: /tmp/out.txt}
 inputs:
