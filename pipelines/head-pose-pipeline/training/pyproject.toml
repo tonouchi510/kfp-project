@@ -2,14 +2,14 @@
 name = "training"
 version = "0.1.0"
 description = ""
-authors = ["tonouchi510 <tonouchi27@gmail.com>"]
+authors = ["tonouchi27 <tonouchi27@gmail.com>"]
 
 [tool.poetry.dependencies]
 python = "^3.9,<3.10"
-tensorflow = "2.6.0"
-google-cloud-storage = "^1.42.3"
-cloud-tpu-client = "^0.10"
+google-cloud-storage = "^2.1.0"
 PyYAML = "^6.0"
+setuptools = "^60.8.0"
+tensorflow = "^2.8.0"
 
 [tool.poetry.dev-dependencies]
 
