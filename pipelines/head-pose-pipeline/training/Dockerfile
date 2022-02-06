@@ -7,7 +7,6 @@ ENV PATH /root/.local/bin:$PATH
 WORKDIR /workspace
 COPY utils ./utils
 COPY pipelines/head-pose-pipeline/training/* ./
-COPY config/logging.yaml ./config/logging.yaml
 
 RUN apt-get update && \
     DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \

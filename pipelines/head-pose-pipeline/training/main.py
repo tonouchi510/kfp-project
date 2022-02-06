@@ -4,14 +4,15 @@ import numpy as np
 import tensorflow as tf
 from typing import Callable, List
 from absl import app, flags
+from logging import getLogger
 from google.cloud import storage
 
+
 from utils.trainer import Training, get_tfrecord_dataset
-from utils.logger import get_logger
 from util import DecayLearningRate, augment_data
 from models import *
 
-logger = get_logger(__name__)
+logger = getLogger(__name__)
 
 # Random seed fixation
 tf.random.set_seed(666)
