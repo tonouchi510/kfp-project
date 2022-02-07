@@ -1,7 +1,7 @@
 """ This code is modified from the following paper.
 Learnable mOdUle for Pooling fEatures (LOUPE)
 Contains a collection of models (NetVLAD, NetRVLAD, NetFV and Soft-DBoW)
-which enables pooling of a list of features into a single compact 
+which enables pooling of a list of features into a single compact
 representation.
 
 Reference:
@@ -12,16 +12,15 @@ Antoine Miech, Ivan Laptev, Josef Sivic
 """
 import math
 import tensorflow as tf
-import tensorflow.contrib.slim as slim
 from tensorflow.keras import layers
 import tensorflow.keras.backend as K
 
 
 # Keras version
 
+
 class ContextGating(layers.Layer):
-    """Creates a NetVLAD class.
-    """
+    """Creates a NetVLAD class."""
 
     def __init__(self, **kwargs):
 
@@ -29,17 +28,22 @@ class ContextGating(layers.Layer):
 
     def build(self, input_shape):
         # Create a trainable weight variable for this layer.
-        self.gating_weights = self.add_weight(name='kernel_W1',
-                                              shape=(
-                                                  input_shape[-1], input_shape[-1]),
-                                              initializer=tf.random_normal_initializer(
-                                                  stddev=1 / math.sqrt(input_shape[-1])),
-                                              trainable=True)
-        self.gating_biases = self.add_weight(name='kernel_B1',
-                                             shape=(input_shape[-1],),
-                                             initializer=tf.random_normal_initializer(
-                                                 stddev=1 / math.sqrt(input_shape[-1])),
-                                             trainable=True)
+        self.gating_weights = self.add_weight(
+            name="kernel_W1",
+            shape=(input_shape[-1], input_shape[-1]),
+            initializer=tf.random_normal_initializer(
+                stddev=1 / math.sqrt(input_shape[-1])
+            ),
+            trainable=True,
+        )
+        self.gating_biases = self.add_weight(
+            name="kernel_B1",
+            shape=(input_shape[-1],),
+            initializer=tf.random_normal_initializer(
+                stddev=1 / math.sqrt(input_shape[-1])
+            ),
+            trainable=True,
+        )
 
         # Be sure to call this at the end
         super(ContextGating, self).build(input_shape)
@@ -68,8 +72,7 @@ class ContextGating(layers.Layer):
 
 
 class NetVLAD(layers.Layer):
-    """Creates a NetVLAD class.
-    """
+    """Creates a NetVLAD class."""
 
     def __init__(self, feature_size, max_samples, cluster_size, output_dim, **kwargs):
 
@@ -81,29 +84,38 @@ class NetVLAD(layers.Layer):
 
     def build(self, input_shape):
         # Create a trainable weight variable for this layer.
-        self.cluster_weights = self.add_weight(name='kernel_W1',
-                                               shape=(self.feature_size,
-                                                      self.cluster_size),
-                                               initializer=tf.random_normal_initializer(
-                                                   stddev=1 / math.sqrt(self.feature_size)),
-                                               trainable=True)
-        self.cluster_biases = self.add_weight(name='kernel_B1',
-                                              shape=(self.cluster_size,),
-                                              initializer=tf.random_normal_initializer(
-                                                  stddev=1 / math.sqrt(self.feature_size)),
-                                              trainable=True)
-        self.cluster_weights2 = self.add_weight(name='kernel_W2',
-                                                shape=(
-                                                    1, self.feature_size, self.cluster_size),
-                                                initializer=tf.random_normal_initializer(
-                                                    stddev=1 / math.sqrt(self.feature_size)),
-                                                trainable=True)
-        self.hidden1_weights = self.add_weight(name='kernel_H1',
-                                               shape=(
-                                                   self.cluster_size*self.feature_size, self.output_dim),
-                                               initializer=tf.random_normal_initializer(
-                                                   stddev=1 / math.sqrt(self.cluster_size)),
-                                               trainable=True)
+        self.cluster_weights = self.add_weight(
+            name="kernel_W1",
+            shape=(self.feature_size, self.cluster_size),
+            initializer=tf.random_normal_initializer(
+                stddev=1 / math.sqrt(self.feature_size)
+            ),
+            trainable=True,
+        )
+        self.cluster_biases = self.add_weight(
+            name="kernel_B1",
+            shape=(self.cluster_size,),
+            initializer=tf.random_normal_initializer(
+                stddev=1 / math.sqrt(self.feature_size)
+            ),
+            trainable=True,
+        )
+        self.cluster_weights2 = self.add_weight(
+            name="kernel_W2",
+            shape=(1, self.feature_size, self.cluster_size),
+            initializer=tf.random_normal_initializer(
+                stddev=1 / math.sqrt(self.feature_size)
+            ),
+            trainable=True,
+        )
+        self.hidden1_weights = self.add_weight(
+            name="kernel_H1",
+            shape=(self.cluster_size * self.feature_size, self.output_dim),
+            initializer=tf.random_normal_initializer(
+                stddev=1 / math.sqrt(self.cluster_size)
+            ),
+            trainable=True,
+        )
 
         # Be sure to call this at the end
         super(NetVLAD, self).build(input_shape)
@@ -126,10 +138,10 @@ class NetVLAD(layers.Layer):
         In Keras, there are two way to do matrix multiplication (dot product)
         1) K.dot : AxB -> when A has batchsize and B doesn't, use K.dot
         2) tf.matmul: AxB -> when A and B both have batchsize, use tf.matmul
-        
+
         Error example: Use tf.matmul when A has batchsize (3 dim) and B doesn't (2 dim)
         ValueError: Shape must be rank 2 but is rank 3 for 'net_vlad_1/MatMul' (op: 'MatMul') with input shapes: [?,21,64], [64,3]
-        
+
         tf.matmul might still work when the dim of A is (?,64), but this is too confusing.
         Just follow the above rules.
         """
@@ -139,8 +151,7 @@ class NetVLAD(layers.Layer):
 
         activation = tf.nn.softmax(activation)
 
-        activation = tf.reshape(activation,
-                                [-1, self.max_samples, self.cluster_size])
+        activation = tf.reshape(activation, [-1, self.max_samples, self.cluster_size])
 
         a_sum = tf.reduce_sum(activation, -2, keep_dims=True)
 
@@ -149,14 +160,14 @@ class NetVLAD(layers.Layer):
         activation = tf.transpose(activation, perm=[0, 2, 1])
 
         reshaped_input = tf.reshape(
-            reshaped_input,
-            [-1, self.max_samples, self.feature_size])
+            reshaped_input, [-1, self.max_samples, self.feature_size]
+        )
 
         vlad = tf.matmul(activation, reshaped_input)
         vlad = tf.transpose(vlad, perm=[0, 2, 1])
         vlad = tf.subtract(vlad, a)
         vlad = tf.nn.l2_normalize(vlad, 1)
-        vlad = tf.reshape(vlad, [-1, self.cluster_size*self.feature_size])
+        vlad = tf.reshape(vlad, [-1, self.cluster_size * self.feature_size])
         vlad = tf.nn.l2_normalize(vlad, 1)
         vlad = K.dot(vlad, self.hidden1_weights)
 
@@ -167,8 +178,7 @@ class NetVLAD(layers.Layer):
 
 
 class NetRVLAD(layers.Layer):
-    """Creates a NetRVLAD class (Residual-less NetVLAD).
-    """
+    """Creates a NetRVLAD class (Residual-less NetVLAD)."""
 
     def __init__(self, feature_size, max_samples, cluster_size, output_dim, **kwargs):
 
@@ -180,23 +190,30 @@ class NetRVLAD(layers.Layer):
 
     def build(self, input_shape):
         # Create a trainable weight variable for this layer.
-        self.cluster_weights = self.add_weight(name='kernel_W1',
-                                               shape=(self.feature_size,
-                                                      self.cluster_size),
-                                               initializer=tf.random_normal_initializer(
-                                                   stddev=1 / math.sqrt(self.feature_size)),
-                                               trainable=True)
-        self.cluster_biases = self.add_weight(name='kernel_B1',
-                                              shape=(self.cluster_size,),
-                                              initializer=tf.random_normal_initializer(
-                                                  stddev=1 / math.sqrt(self.feature_size)),
-                                              trainable=True)
-        self.hidden1_weights = self.add_weight(name='kernel_H1',
-                                               shape=(
-                                                   self.cluster_size*self.feature_size, self.output_dim),
-                                               initializer=tf.random_normal_initializer(
-                                                   stddev=1 / math.sqrt(self.cluster_size)),
-                                               trainable=True)
+        self.cluster_weights = self.add_weight(
+            name="kernel_W1",
+            shape=(self.feature_size, self.cluster_size),
+            initializer=tf.random_normal_initializer(
+                stddev=1 / math.sqrt(self.feature_size)
+            ),
+            trainable=True,
+        )
+        self.cluster_biases = self.add_weight(
+            name="kernel_B1",
+            shape=(self.cluster_size,),
+            initializer=tf.random_normal_initializer(
+                stddev=1 / math.sqrt(self.feature_size)
+            ),
+            trainable=True,
+        )
+        self.hidden1_weights = self.add_weight(
+            name="kernel_H1",
+            shape=(self.cluster_size * self.feature_size, self.output_dim),
+            initializer=tf.random_normal_initializer(
+                stddev=1 / math.sqrt(self.cluster_size)
+            ),
+            trainable=True,
+        )
 
         # Be sure to call this at the end
         super(NetRVLAD, self).build(input_shape)
@@ -219,10 +236,10 @@ class NetRVLAD(layers.Layer):
         In Keras, there are two way to do matrix multiplication (dot product)
         1) K.dot : AxB -> when A has batchsize and B doesn't, use K.dot
         2) tf.matmul: AxB -> when A and B both have batchsize, use tf.matmul
-        
+
         Error example: Use tf.matmul when A has batchsize (3 dim) and B doesn't (2 dim)
         ValueError: Shape must be rank 2 but is rank 3 for 'net_vlad_1/MatMul' (op: 'MatMul') with input shapes: [?,21,64], [64,3]
-        
+
         tf.matmul might still work when the dim of A is (?,64), but this is too confusing.
         Just follow the above rules.
         """
@@ -232,19 +249,18 @@ class NetRVLAD(layers.Layer):
 
         activation = tf.nn.softmax(activation)
 
-        activation = tf.reshape(activation,
-                                [-1, self.max_samples, self.cluster_size])
+        activation = tf.reshape(activation, [-1, self.max_samples, self.cluster_size])
 
         activation = tf.transpose(activation, perm=[0, 2, 1])
 
         reshaped_input = tf.reshape(
-            reshaped_input,
-            [-1, self.max_samples, self.feature_size])
+            reshaped_input, [-1, self.max_samples, self.feature_size]
+        )
 
         vlad = tf.matmul(activation, reshaped_input)
         vlad = tf.transpose(vlad, perm=[0, 2, 1])
         vlad = tf.nn.l2_normalize(vlad, 1)
-        vlad = tf.reshape(vlad, [-1, self.cluster_size*self.feature_size])
+        vlad = tf.reshape(vlad, [-1, self.cluster_size * self.feature_size])
         vlad = tf.nn.l2_normalize(vlad, 1)
         vlad = K.dot(vlad, self.hidden1_weights)
 
@@ -255,8 +271,7 @@ class NetRVLAD(layers.Layer):
 
 
 class SoftDBoW(layers.Layer):
-    """Creates a Soft Deep Bag-of-Features class.
-    """
+    """Creates a Soft Deep Bag-of-Features class."""
 
     def __init__(self, feature_size, max_samples, cluster_size, output_dim, **kwargs):
 
@@ -268,23 +283,30 @@ class SoftDBoW(layers.Layer):
 
     def build(self, input_shape):
         # Create a trainable weight variable for this layer.
-        self.cluster_weights = self.add_weight(name='kernel_W1',
-                                               shape=(self.feature_size,
-                                                      self.cluster_size),
-                                               initializer=tf.random_normal_initializer(
-                                                   stddev=1 / math.sqrt(self.feature_size)),
-                                               trainable=True)
-        self.cluster_biases = self.add_weight(name='kernel_B1',
-                                              shape=(self.cluster_size,),
-                                              initializer=tf.random_normal_initializer(
-                                                  stddev=1 / math.sqrt(self.feature_size)),
-                                              trainable=True)
-        self.hidden1_weights = self.add_weight(name='kernel_H1',
-                                               shape=(self.cluster_size,
-                                                      self.output_dim),
-                                               initializer=tf.random_normal_initializer(
-                                                   stddev=1 / math.sqrt(self.cluster_size)),
-                                               trainable=True)
+        self.cluster_weights = self.add_weight(
+            name="kernel_W1",
+            shape=(self.feature_size, self.cluster_size),
+            initializer=tf.random_normal_initializer(
+                stddev=1 / math.sqrt(self.feature_size)
+            ),
+            trainable=True,
+        )
+        self.cluster_biases = self.add_weight(
+            name="kernel_B1",
+            shape=(self.cluster_size,),
+            initializer=tf.random_normal_initializer(
+                stddev=1 / math.sqrt(self.feature_size)
+            ),
+            trainable=True,
+        )
+        self.hidden1_weights = self.add_weight(
+            name="kernel_H1",
+            shape=(self.cluster_size, self.output_dim),
+            initializer=tf.random_normal_initializer(
+                stddev=1 / math.sqrt(self.cluster_size)
+            ),
+            trainable=True,
+        )
         # Be sure to call this at the end
         super(SoftDBoW, self).build(input_shape)
 
@@ -306,10 +328,10 @@ class SoftDBoW(layers.Layer):
         In Keras, there are two way to do matrix multiplication (dot product)
         1) K.dot : AxB -> when A has batchsize and B doesn't, use K.dot
         2) tf.matmul: AxB -> when A and B both have batchsize, use tf.matmul
-        
+
         Error example: Use tf.matmul when A has batchsize (3 dim) and B doesn't (2 dim)
         ValueError: Shape must be rank 2 but is rank 3 for 'net_vlad_1/MatMul' (op: 'MatMul') with input shapes: [?,21,64], [64,3]
-        
+
         tf.matmul might still work when the dim of A is (?,64), but this is too confusing.
         Just follow the above rules.
         """
@@ -319,8 +341,7 @@ class SoftDBoW(layers.Layer):
 
         activation = tf.nn.softmax(activation)
 
-        activation = tf.reshape(activation,
-                                [-1, self.max_samples, self.cluster_size])
+        activation = tf.reshape(activation, [-1, self.max_samples, self.cluster_size])
 
         bow = tf.reduce_sum(activation, 1)
         bow = tf.nn.l2_normalize(bow, 1)
@@ -332,8 +353,7 @@ class SoftDBoW(layers.Layer):
 
 
 class NetFV(layers.Layer):
-    """Creates a NetVLAD class.
-    """
+    """Creates a NetVLAD class."""
 
     def __init__(self, feature_size, max_samples, cluster_size, output_dim, **kwargs):
 
@@ -345,35 +365,46 @@ class NetFV(layers.Layer):
 
     def build(self, input_shape):
         # Create a trainable weight variable for this layer.
-        self.cluster_weights = self.add_weight(name='kernel_W1',
-                                               shape=(self.feature_size,
-                                                      self.cluster_size),
-                                               initializer=tf.random_normal_initializer(
-                                                   stddev=1 / math.sqrt(self.feature_size)),
-                                               trainable=True)
-        self.covar_weights = self.add_weight(name='kernel_C1',
-                                             shape=(self.feature_size,
-                                                    self.cluster_size),
-                                             initializer=tf.random_normal_initializer(
-                                                 stddev=1 / math.sqrt(self.feature_size)),
-                                             trainable=True)
-        self.cluster_biases = self.add_weight(name='kernel_B1',
-                                              shape=(self.cluster_size,),
-                                              initializer=tf.random_normal_initializer(
-                                                  stddev=1 / math.sqrt(self.feature_size)),
-                                              trainable=True)
-        self.cluster_weights2 = self.add_weight(name='kernel_W2',
-                                                shape=(
-                                                    1, self.feature_size, self.cluster_size),
-                                                initializer=tf.random_normal_initializer(
-                                                    stddev=1 / math.sqrt(self.feature_size)),
-                                                trainable=True)
-        self.hidden1_weights = self.add_weight(name='kernel_H1',
-                                               shape=(
-                                                   2*self.cluster_size*self.feature_size, self.output_dim),
-                                               initializer=tf.random_normal_initializer(
-                                                   stddev=1 / math.sqrt(self.cluster_size)),
-                                               trainable=True)
+        self.cluster_weights = self.add_weight(
+            name="kernel_W1",
+            shape=(self.feature_size, self.cluster_size),
+            initializer=tf.random_normal_initializer(
+                stddev=1 / math.sqrt(self.feature_size)
+            ),
+            trainable=True,
+        )
+        self.covar_weights = self.add_weight(
+            name="kernel_C1",
+            shape=(self.feature_size, self.cluster_size),
+            initializer=tf.random_normal_initializer(
+                stddev=1 / math.sqrt(self.feature_size)
+            ),
+            trainable=True,
+        )
+        self.cluster_biases = self.add_weight(
+            name="kernel_B1",
+            shape=(self.cluster_size,),
+            initializer=tf.random_normal_initializer(
+                stddev=1 / math.sqrt(self.feature_size)
+            ),
+            trainable=True,
+        )
+        self.cluster_weights2 = self.add_weight(
+            name="kernel_W2",
+            shape=(1, self.feature_size, self.cluster_size),
+            initializer=tf.random_normal_initializer(
+                stddev=1 / math.sqrt(self.feature_size)
+            ),
+            trainable=True,
+        )
+        self.hidden1_weights = self.add_weight(
+            name="kernel_H1",
+            shape=(2 * self.cluster_size * self.feature_size, self.output_dim),
+            initializer=tf.random_normal_initializer(
+                stddev=1 / math.sqrt(self.cluster_size)
+            ),
+            trainable=True,
+        )
         # Be sure to call this at the end
         super(NetFV, self).build(input_shape)
 
@@ -395,10 +426,10 @@ class NetFV(layers.Layer):
         In Keras, there are two way to do matrix multiplication (dot product)
         1) K.dot : AxB -> when A has batchsize and B doesn't, use K.dot
         2) tf.matmul: AxB -> when A and B both have batchsize, use tf.matmul
-        
+
         Error example: Use tf.matmul when A has batchsize (3 dim) and B doesn't (2 dim)
         ValueError: Shape must be rank 2 but is rank 3 for 'net_vlad_1/MatMul' (op: 'MatMul') with input shapes: [?,21,64], [64,3]
-        
+
         tf.matmul might still work when the dim of A is (?,64), but this is too confusing.
         Just follow the above rules.
         """
@@ -413,8 +444,7 @@ class NetFV(layers.Layer):
 
         activation = tf.nn.softmax(activation)
 
-        activation = tf.reshape(activation,
-                                [-1, self.max_samples, self.cluster_size])
+        activation = tf.reshape(activation, [-1, self.max_samples, self.cluster_size])
 
         a_sum = tf.reduce_sum(activation, -2, keep_dims=True)
 
@@ -423,8 +453,8 @@ class NetFV(layers.Layer):
         activation = tf.transpose(activation, perm=[0, 2, 1])
 
         reshaped_input = tf.reshape(
-            reshaped_input,
-            [-1, self.max_samples, self.feature_size])
+            reshaped_input, [-1, self.max_samples, self.feature_size]
+        )
 
         fv1 = tf.matmul(activation, reshaped_input)
         fv1 = tf.transpose(fv1, perm=[0, 2, 1])
@@ -441,17 +471,17 @@ class NetFV(layers.Layer):
         fv2 = tf.divide(fv2, tf.square(covar_weights))
         fv2 = tf.subtract(fv2, a_sum)
 
-        fv2 = tf.reshape(fv2, [-1, self.cluster_size*self.feature_size])
+        fv2 = tf.reshape(fv2, [-1, self.cluster_size * self.feature_size])
 
         fv2 = tf.nn.l2_normalize(fv2, 1)
-        fv2 = tf.reshape(fv2, [-1, self.cluster_size*self.feature_size])
+        fv2 = tf.reshape(fv2, [-1, self.cluster_size * self.feature_size])
         fv2 = tf.nn.l2_normalize(fv2, 1)
 
         fv1 = tf.subtract(fv1, a)
         fv1 = tf.divide(fv1, covar_weights)
 
         fv1 = tf.nn.l2_normalize(fv1, 1)
-        fv1 = tf.reshape(fv1, [-1, self.cluster_size*self.feature_size])
+        fv1 = tf.reshape(fv1, [-1, self.cluster_size * self.feature_size])
         fv1 = tf.nn.l2_normalize(fv1, 1)
 
         fv = tf.concat([fv1, fv2], 1)
