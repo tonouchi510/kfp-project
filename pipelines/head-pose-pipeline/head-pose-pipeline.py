@@ -20,7 +20,7 @@ slack_notification_op = component_store.load_component("slack-notification")
     description="training pipeline for head-pose-estimation"
 )
 def pipeline(
-    bucket: str = "kfp-project",
+    bucket_name: str = "mitene-ml-research",
     job_id: str = "{{JOB_ID}}",
     dataset: str = "",
     global_batch_size: int = 1024,
@@ -37,7 +37,7 @@ def pipeline(
     ):
         train_op(
             pipeline=PIPELINE_NAME,
-            bucket=bucket,
+            bucket_name=bucket_name,
             job_id=job_id,
             global_batch_size=global_batch_size,
             epochs=epochs,
@@ -50,12 +50,12 @@ def pipeline(
             .apply(gcp.use_tpu(
                 tpu_cores=8,
                 tpu_resource="preemptible-v3",
-                tf_version="2.7.0"))\
+                tf_version="2.8.0"))\
             .set_retry(num_retries=2)
 
         tensorboard_op(
             pipeline_name=PIPELINE_NAME,
-            bucket=bucket,
+            bucket=bucket_name,
             job_id=job_id,
             log_dir="training/logs"
         ).set_display_name("tboard")\
