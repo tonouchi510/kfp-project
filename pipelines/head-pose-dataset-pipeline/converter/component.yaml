@@ -1,0 +1,19 @@
+name: converter
+implementation:
+  container:
+    image: gcr.io/
+    command: [
+      poetry, run,
+      python3, main.py,
+      --pipeline, {inputValue: pipeline},
+      --bucket_name, {inputValue: bucket_name},
+      --job_id, {inputValue: job_id},
+      --valid_ratio, {inputValue: valid_ratio},
+      --chunk_file, {inputValue: chunk_file},
+    ]
+inputs:
+- {name: pipeline, type: String}
+- {name: bucket_name, type: String}
+- {name: job_id, type: String}
+- {name: valid_ratio, type: Float}
+- {name: chunk_file, type: String}

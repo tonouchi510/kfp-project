@@ -1,0 +1,20 @@
+name: data-chunk-spliter
+implementation:
+  container:
+    image: gcr.io/
+    command: [
+      poetry, run,
+      python3, main.py,
+      --pipeline, {inputValue: pipeline},
+      --job_id, {inputValue: job_id},
+      --bucket_name, {inputValue: bucket_name},
+      --dataset, {inputValue: dataset},
+    ]
+    fileOutputs: {out: /tmp/out.json}
+inputs:
+- {name: pipeline, type: String}
+- {name: job_id, type: String}
+- {name: bucket_name, type: String}
+- {name: dataset, type: String}
+outputs:
+- {name: out}
