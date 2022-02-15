@@ -154,7 +154,7 @@ jobs:
           echo "**********************************************"
           echo "Compile ${pipeline_file}"
           echo "**********************************************"
-          dsl-compile --py "$pipeline_file" --output "${output_file}"
+          poetry run dsl-compile --py "$pipeline_file" --output "${output_file}"
 
       - name: Deploy and run pipeline
         run: |
@@ -162,9 +162,9 @@ jobs:
           echo "Deploy ${{ env.PIPELINE_NAME }}"
           echo "**********************************************"
           if [ "${{ github.event_name }}" = "pull_request" ]; then
-            python .github/workflows/helper.py deploy-pipeline \
+            poetry run python .github/workflows/helper.py deploy-pipeline \
               --pipeline_name "${{ env.PIPELINE_NAME }}" --version "${{ env.DOCKER_TAG }}" --run
           else
-            python .github/workflows/helper.py deploy-pipeline \
+            poetry run python .github/workflows/helper.py deploy-pipeline \
               --pipeline_name "${{ env.PIPELINE_NAME }}" --version "${{ env.DOCKER_TAG }}" --is_master
           fi
