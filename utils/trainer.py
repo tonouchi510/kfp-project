@@ -118,8 +118,9 @@ class Training:
         blobs = client.list_blobs(bucket_name, prefix=f"{dest}/checkpoints")
         checkpoints = [0]
         for b in blobs:
-            epoch = int(b.name.replace(dest, "").split("/")[0])
-            checkpoints.append(epoch)
+            epoch = b.name.replace(dest, "").split("/")[0]
+            if epoch:
+                checkpoints.append(int(epoch))
         last_epoch = max(checkpoints)
         return last_epoch
 
