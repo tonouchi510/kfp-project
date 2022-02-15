@@ -1,18 +1,18 @@
-name: head-pose-pipeline-build
+name: head-pose-dataset-pipeline-build
 
 on:
   push:
     branches:
       - main
     paths:
-      - "pipelines/head-pose-pipeline/**/*"
-      - ".github/workflows/head-pose-pipeline-build.yaml"
+      - "pipelines/head-pose-dataset-pipeline/**/*"
+      - ".github/workflows/head-pose-dataset-pipeline-build.yaml"
   pull_request:
     branches:
       - main
     paths:
-      - "pipelines/head-pose-pipeline/**/*"
-      - ".github/workflows/head-pose-pipeline-build.yaml"
+      - "pipelines/head-pose-dataset-pipeline/**/*"
+      - ".github/workflows/head-pose-dataset-pipeline-build.yaml"
 
 env:
   GCP_PROJECT: ${{ secrets.GCP_PROJECT_ID }}
@@ -22,7 +22,7 @@ env:
   VERTEX_SERVICE_ACCOUNT_NAME: ${{ secrets.VERTEX_SERVICE_ACCOUNT_NAME }}
   KUBEFLOW_HOST: ${{ secrets.KUBEFLOW_HOST }}
   GOOGLE_APPLICATION_CREDENTIALS: "searvice-account.json"
-  PIPELINE_NAME: "head-pose-pipeline"
+  PIPELINE_NAME: "head-pose-dataset-pipeline"
 
 jobs:
   test:
@@ -51,7 +51,7 @@ jobs:
           poetry install
       
       - name: Run test
-        run: poetry run echo "skip" #python3 -m tests.main
+        run: echo "skip" #python3 -m tests.main
       
   build-docker-image-and-push:
     needs: test
@@ -72,23 +72,36 @@ jobs:
       - name: Set docker build params
         run: |
           if [ "${{ github.event_name }}" = "pull_request" ]; then
-            docker_tag=pr-${{ github.event.number }}-${GITHUB_SHA}
+            docker_tag=pr-${{ github.event.pull_request.number }}-${GITHUB_SHA}
           else
             docker_tag=${GITHUB_SHA}
           fi
           echo "DOCKER_TAG=${docker_tag}" >>$GITHUB_ENV
         
-      - name: Build and push training component
-        id: docker_build
+      - name: Build and push data-chunk-spliter component
+        id: docker_build_data_chunk_spliter
         uses: docker/build-push-action@v2
         with:
-          file: ./pipelines/${{ env.PIPELINE_NAME }}/training/Dockerfile
+          file: ./pipelines/${{ env.PIPELINE_NAME }}/data-chunk-spliter/Dockerfile
           push: true
           tags: |
-            gcr.io/${{ env.GCP_PROJECT }}/${{ env.PIPELINE_NAME }}-training:${{ env.DOCKER_TAG }}
+            gcr.io/${{ env.GCP_PROJECT }}/${{ env.PIPELINE_NAME }}-data-chunk-spliter:${{ env.DOCKER_TAG }}
           cache-from: |
-            gcr.io/${{ env.GCP_PROJECT }}/${{ env.PIPELINE_NAME }}-training:${{ env.DOCKER_TAG }}
-            gcr.io/${{ env.GCP_PROJECT }}/${{ env.PIPELINE_NAME }}-training:latest
+            gcr.io/${{ env.GCP_PROJECT }}/${{ env.PIPELINE_NAME }}-data-chunk-spliter:${{ env.DOCKER_TAG }}
+            gcr.io/${{ env.GCP_PROJECT }}/${{ env.PIPELINE_NAME }}-data-chunk-spliter:latest
+          cache-to: type=inline
+      
+      - name: Build and push converter component
+        id: docker_build_converter
+        uses: docker/build-push-action@v2
+        with:
+          file: ./pipelines/${{ env.PIPELINE_NAME }}/converter/Dockerfile
+          push: true
+          tags: |
+            gcr.io/${{ env.GCP_PROJECT }}/${{ env.PIPELINE_NAME }}-converter:${{ env.DOCKER_TAG }}
+          cache-from: |
+            gcr.io/${{ env.GCP_PROJECT }}/${{ env.PIPELINE_NAME }}-converter:${{ env.DOCKER_TAG }}
+            gcr.io/${{ env.GCP_PROJECT }}/${{ env.PIPELINE_NAME }}-converter:latest
           cache-to: type=inline
       
   compile-pipeline-and-run:
@@ -120,7 +133,7 @@ jobs:
       - name: Set docker build params
         run: |
           if [ "${{ github.event_name }}" = "pull_request" ]; then
-            docker_tag=pr-${{ github.event.number }}-${GITHUB_SHA}
+            docker_tag=pr-${{ github.event.pull_request.number }}-${GITHUB_SHA}
           else
             docker_tag=${GITHUB_SHA}
           fi
@@ -143,7 +156,7 @@ jobs:
           echo "**********************************************"
           dsl-compile --py "$pipeline_file" --output "${output_file}"
 
-      - name: Run pipeline
+      - name: Deploy and run pipeline
         run: |
           echo "**********************************************"
           echo "Deploy ${{ env.PIPELINE_NAME }}"

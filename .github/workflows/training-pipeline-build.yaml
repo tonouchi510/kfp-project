@@ -1,18 +1,18 @@
-name: head-pose-pipeline-build
+name: training-pipeline-build
 
 on:
   push:
     branches:
       - main
     paths:
-      - "pipelines/head-pose-pipeline/**/*"
-      - ".github/workflows/head-pose-pipeline-build.yaml"
+      - "pipelines/hello-world-pipeline/**/*"
+      - ".github/workflows/hello-world-pipeline-build.yaml"
   pull_request:
     branches:
       - main
     paths:
-      - "pipelines/head-pose-pipeline/**/*"
-      - ".github/workflows/head-pose-pipeline-build.yaml"
+      - "pipelines/hello-world-pipeline/**/*"
+      - ".github/workflows/hello-world-pipeline-build.yaml"
 
 env:
   GCP_PROJECT: ${{ secrets.GCP_PROJECT_ID }}
@@ -20,9 +20,8 @@ env:
   PIPELINE_ROOT: ${{ secrets.PIPELINE_ROOT }}
   GCP_SERVICE_ACCOUNT_KEY: ${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}
   VERTEX_SERVICE_ACCOUNT_NAME: ${{ secrets.VERTEX_SERVICE_ACCOUNT_NAME }}
-  KUBEFLOW_HOST: ${{ secrets.KUBEFLOW_HOST }}
   GOOGLE_APPLICATION_CREDENTIALS: "searvice-account.json"
-  PIPELINE_NAME: "head-pose-pipeline"
+  PIPELINE_NAME: "hello-world-pipeline"
 
 jobs:
   test:
@@ -72,23 +71,23 @@ jobs:
       - name: Set docker build params
         run: |
           if [ "${{ github.event_name }}" = "pull_request" ]; then
-            docker_tag=pr-${{ github.event.number }}-${GITHUB_SHA}
+            docker_tag=pr-${{ github.event.number }}
           else
             docker_tag=${GITHUB_SHA}
           fi
           echo "DOCKER_TAG=${docker_tag}" >>$GITHUB_ENV
         
-      - name: Build and push training component
+      - name: Build and push hello component
         id: docker_build
         uses: docker/build-push-action@v2
         with:
-          file: ./pipelines/${{ env.PIPELINE_NAME }}/training/Dockerfile
+          file: ./pipelines/hello-world-pipeline/hello/Dockerfile
           push: true
           tags: |
-            gcr.io/${{ env.GCP_PROJECT }}/${{ env.PIPELINE_NAME }}-training:${{ env.DOCKER_TAG }}
+            gcr.io/${{ env.GCP_PROJECT }}/${{ env.PIPELINE_NAME }}-hello:${{ env.DOCKER_TAG }}
           cache-from: |
-            gcr.io/${{ env.GCP_PROJECT }}/${{ env.PIPELINE_NAME }}-training:${{ env.DOCKER_TAG }}
-            gcr.io/${{ env.GCP_PROJECT }}/${{ env.PIPELINE_NAME }}-training:latest
+            gcr.io/${{ env.GCP_PROJECT }}/${{ env.PIPELINE_NAME }}-hello:${{ env.DOCKER_TAG }}
+            gcr.io/${{ env.GCP_PROJECT }}/${{ env.PIPELINE_NAME }}-hello:latest
           cache-to: type=inline
       
   compile-pipeline-and-run:
@@ -120,7 +119,7 @@ jobs:
       - name: Set docker build params
         run: |
           if [ "${{ github.event_name }}" = "pull_request" ]; then
-            docker_tag=pr-${{ github.event.number }}-${GITHUB_SHA}
+            docker_tag=pr-${{ github.event.number }}
           else
             docker_tag=${GITHUB_SHA}
           fi
@@ -137,21 +136,27 @@ jobs:
       - name: Compile pipeline
         run: |
           pipeline_file=pipelines/${{ env.PIPELINE_NAME }}/${{ env.PIPELINE_NAME }}.py
-          output_file=${{ env.PIPELINE_NAME }}.tar.gz
           echo "**********************************************"
           echo "Compile ${pipeline_file}"
           echo "**********************************************"
-          dsl-compile --py "$pipeline_file" --output "${output_file}"
+          poetry run python ${pipeline_file}
+          echo "**********************************************"
+          echo "Upload ${{ env.PIPELINE_NAME }}.json to ${{ env.PIPELINE_ROOT }}"
+          echo "**********************************************"
+          gsutil cp ${{ env.PIPELINE_NAME }}.json ${{ env.PIPELINE_ROOT }}/${{ env.DOCKER_TAG }}/
 
       - name: Run pipeline
         run: |
+          echo $GCP_SERVICE_ACCOUNT_KEY > service-account.json
           echo "**********************************************"
-          echo "Deploy ${{ env.PIPELINE_NAME }}"
+          echo "Run ${{ env.PIPELINE_NAME }}.json"
           echo "**********************************************"
           if [ "${{ github.event_name }}" = "pull_request" ]; then
-            python .github/workflows/helper.py deploy-pipeline \
-              --pipeline_name "${{ env.PIPELINE_NAME }}" --version "${{ env.DOCKER_TAG }}" --run
+            poetry run python .github/workflows/helper.py run-pipeline \
+              --package_path "${{ env.PIPELINE_NAME }}.json" --pipeline_name "${{ env.PIPELINE_NAME }}" \
+              --version "${{ env.DOCKER_TAG }}" --debug
           else
-            python .github/workflows/helper.py deploy-pipeline \
-              --pipeline_name "${{ env.PIPELINE_NAME }}" --version "${{ env.DOCKER_TAG }}" --is_master
+            poetry run python .github/workflows/helper.py run-pipeline \
+              --package_path "${{ env.PIPELINE_NAME }}.json" --pipeline_name "${{ env.PIPELINE_NAME }}" \
+              --version "${{ env.DOCKER_TAG }}"
           fi
