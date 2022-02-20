@@ -25,11 +25,11 @@ def pipeline(
     valid_ratio: float = 0.1,
 ):
 
-    with dsl.ExitHandler(exit_op=slack_notification_op(
-        pipeline=pipeline_name,
-        bucket=bucket_name,
-        jobid=job_id,
-        message="Status: {{workflow.status}}")
+    with dsl.ExitHandler(
+        exit_op=slack_notification_op(
+            pipeline_name=pipeline_name,
+            job_id=job_id
+        )
     ):
         split_task = data_chunk_spliter_op(
             pipeline=pipeline_name,
@@ -42,7 +42,7 @@ def pipeline(
         with dsl.ParallelFor(split_task.output) as item:
             converter_op(
                 pipeline=pipeline_name,
-                bucket=bucket_name,
+                bucket_name=bucket_name,
                 job_id=job_id,
                 valid_ratio=valid_ratio,
                 chunk_file=item

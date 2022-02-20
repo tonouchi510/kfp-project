@@ -91,11 +91,11 @@ def deploy_pipeline(pipeline_name: str, version: str, is_master: bool, run: bool
     print(f"pipeline_id: {pipeline_id}")
 
     try:
-        experiment = client.get_experiment(experiment_name=pipeline_name)
+        experiment = client.get_experiment(experiment_name=pipeline_name if is_master else "debug")
     except Exception as e:
         print(e)
-        print(f"creating experiment: {pipeline_name}.")
-        experiment = client.create_experiment(name=pipeline_name)
+        print(f"creating experiment: {pipeline_name if is_master else 'debug'}.")
+        experiment = client.create_experiment(name=pipeline_name if is_master else "debug")
 
     if run:
         run_id = f"Run of {pipeline_name}-{version}"

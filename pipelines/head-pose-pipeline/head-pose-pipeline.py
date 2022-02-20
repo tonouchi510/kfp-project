@@ -1,8 +1,7 @@
+from os import pipe
 import kfp
 from kfp import dsl
 from kfp import gcp
-
-PIPELINE_NAME = "head-pose-pipeline"
 
 # Initialize component store
 component_store = kfp.components.ComponentStore(
@@ -20,6 +19,7 @@ slack_notification_op = component_store.load_component("slack-notification")
     description="training pipeline for head-pose-estimation"
 )
 def pipeline(
+    pipeline_name: str = "head-pose-pipeline",
     bucket_name: str = "mitene-ml-research",
     job_id: str = "{{JOB_ID}}",
     dataset: str = "",
@@ -31,12 +31,12 @@ def pipeline(
 ):
     with dsl.ExitHandler(
         exit_op=slack_notification_op(
-            pipeline_name=PIPELINE_NAME,
+            pipeline_name=pipeline_name,
             job_id=job_id,
         )
     ):
         train_op(
-            pipeline=PIPELINE_NAME,
+            pipeline=pipeline_name,
             bucket_name=bucket_name,
             job_id=job_id,
             global_batch_size=global_batch_size,
@@ -54,7 +54,7 @@ def pipeline(
             .set_retry(num_retries=2)
 
         tensorboard_op(
-            pipeline_name=PIPELINE_NAME,
+            pipeline_name=pipeline_name,
             bucket=bucket_name,
             job_id=job_id,
             log_dir="training/logs"
@@ -63,7 +63,4 @@ def pipeline(
 
 
 if __name__ == "__main__":
-    kfp.v2.compiler.Compiler().compile(
-        pipeline_func=pipeline, 
-        package_path="head-pose-pipeline.json"
-    )
+    kfp.compiler.Compiler().compile(pipeline, "head-pose-pipeline.yaml")

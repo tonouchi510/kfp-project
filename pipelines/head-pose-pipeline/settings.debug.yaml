@@ -1,9 +1,0 @@
-arguments:
-  bucket_name: ""
-  job_id: xxxx
-  global_batch_size: 1024
-  epochs: 3
-  lr: 0.0001
-  dataset: ""
-  model_type: 2
-  image_size: 64

@@ -38,7 +38,6 @@ def main(argv):
     files = []
     for b in blobs:
         files.append(b.name)
-    files.remove(f"{prefix}/")  # フォルダ自身を削除
     n_files = len(files)
 
     i = 0
