@@ -21,7 +21,9 @@ flags.DEFINE_string(
     "dataset", None,
     "Directory where dataset is stored.")
 
-N_FILES_BY_TFRECORD = 1000
+flags.DEFINE_integer(
+    "chunk_size", 1000,
+    "Num of files by tfrecord.")
 
 
 def main(argv):
@@ -45,7 +47,7 @@ def main(argv):
     while i < n_files:
         targets = []
         j = 0
-        while (i + j) < n_files and j < N_FILES_BY_TFRECORD:
+        while (i + j) < n_files and j < FLAGS.chunk_size:
             targets.append(files[i + j])
             j += 1
         f_number: str = hashlib.md5(str(targets[0:5]).encode()).hexdigest()

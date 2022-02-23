@@ -9,6 +9,7 @@ implementation:
       --job_id, {inputValue: job_id},
       --bucket_name, {inputValue: bucket_name},
       --dataset, {inputValue: dataset},
+      --chunk_size, {inputValue: chunk_size},
     ]
     fileOutputs: {out: /tmp/out.json}
 inputs:
@@ -16,5 +17,6 @@ inputs:
 - {name: job_id, type: String}
 - {name: bucket_name, type: String}
 - {name: dataset, type: String}
+- {name: chunk_size, type: Integer}
 outputs:
 - {name: out}

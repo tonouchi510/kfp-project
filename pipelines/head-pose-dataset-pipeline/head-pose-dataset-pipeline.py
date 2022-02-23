@@ -22,6 +22,7 @@ def pipeline(
     bucket_name: str = "",
     job_id: str = "{{JOB_ID}}",
     dataset: str = "",
+    chunk_size: int = 1000,
     valid_ratio: float = 0.1,
 ):
 
@@ -36,6 +37,7 @@ def pipeline(
             bucket_name=bucket_name,
             job_id=job_id,
             dataset=dataset,
+            chunk_size=chunk_size,
         ).apply(gcp.use_preemptible_nodepool()) \
             .set_retry(num_retries=2)
 
