@@ -118,6 +118,8 @@ class Training:
         blobs = client.list_blobs(bucket_name, prefix=f"{dest}/checkpoints")
         checkpoints = [0]
         for b in blobs:
+            if b.name == f"{dest}/checkpoints/":
+                continue
             epoch = b.name.replace(f"{dest}/checkpoints/", "").split("/")[0]
             if epoch:
                 checkpoints.append(int(epoch))

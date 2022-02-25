@@ -9,6 +9,7 @@ from logging import getLogger
 from google.cloud import storage
 
 from utils.trainer import Training, get_tfrecord_dataset
+from utils.data import preprocess_image
 from util import DecayLearningRate
 import models
 
@@ -197,13 +198,20 @@ def read_tfrecord(
     size: int,
 ):
     # decode the TFRecord
-    """WIP
-    example = tf.io.parse_single_example(example, TFRECORD_FEATURES)
+    features = {
+        "image": tf.io.FixedLenFeature([], tf.string, default_value=""),
+        "roll": tf.io.FixedLenFeature([], tf.float32),
+        "pitch": tf.io.FixedLenFeature([], tf.float32),
+        "yaw": tf.io.FixedLenFeature([], tf.float32)
+    }
+
+    example = tf.io.parse_single_example(example, features)
     x = tf.image.decode_png(example["image"], channels=3)
     x = preprocess_image(x, size)
-    y = example["y"]
-    return x, y
-    """
+    roll = example["roll"]
+    pitch = example["pitch"]
+    yaw = example["yaw"]
+    return x, (roll, pitch, yaw)
 
 
 def download_blob(bucket_name, source_blob_name):

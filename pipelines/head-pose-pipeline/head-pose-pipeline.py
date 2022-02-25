@@ -20,7 +20,7 @@ slack_notification_op = component_store.load_component("slack-notification")
 )
 def pipeline(
     pipeline_name: str = "head-pose-pipeline",
-    bucket_name: str = "mitene-ml-research",
+    bucket_name: str = "",
     job_id: str = "{{JOB_ID}}",
     dataset: str = "",
     global_batch_size: int = 1024,

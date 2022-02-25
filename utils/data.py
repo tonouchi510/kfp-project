@@ -22,9 +22,11 @@ def preprocess_image(img: EagerTensor, size: int) -> EagerTensor:
 
     """
     img = tf.image.convert_image_dtype(img, tf.bfloat16)
-    img = tf.image.resize_with_pad(img, size, size,
-                                   method="bilinear",
-                                   antialias=False)
+    img = tf.image.resize_with_pad(
+        img, size, size,
+        method="bilinear",
+        antialias=False
+    )
     img = tf.image.per_image_standardization(img)
     return img
 
