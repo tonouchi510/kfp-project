@@ -29,6 +29,9 @@ flags.DEFINE_integer(
 def main(argv):
     if len(argv) > 1:
         raise app.UsageError('Too many command-line arguments.')
+    
+    if not FLAGS.dataset:
+        raise ValueError("dataset param is not nullable.")
 
     job_dir = f"tmp/{FLAGS.pipeline}/{FLAGS.job_id}/data-chunk-spliter"
 
