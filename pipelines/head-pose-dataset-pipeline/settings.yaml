@@ -1,0 +1,7 @@
+arguments:
+  pipeline_name: debug
+  bucket_name: ""
+  job_id: xxxx
+  dataset: ""
+  chunk_size: 500
+  valid_ratio: 0.1
