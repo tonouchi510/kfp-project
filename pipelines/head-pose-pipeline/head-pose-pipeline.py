@@ -47,10 +47,6 @@ def pipeline(
             image_size=image_size,
         ).set_display_name("training")\
             .apply(gcp.use_preemptible_nodepool())\
-            .apply(gcp.use_tpu(
-                tpu_cores=8,
-                tpu_resource="preemptible-v3",
-                tf_version="2.8.0"))\
             .set_retry(num_retries=2)
 
         tensorboard_op(
