@@ -277,7 +277,7 @@ def main(argv):
         build_model_func=build_model_func,
         job_dir=job_dir,
         artifacts_dir=artifacts_dir,
-        use_tpu=False,
+        use_tpu=True,
     )
     t.add_callbacks([DecayLearningRate(start_decay_epoch)])
 
