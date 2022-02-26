@@ -16,7 +16,7 @@ flags.DEFINE_string(
     'ID for job management.')
 
 flags.DEFINE_string(
-    'log_dir', None,
+    'tblog_dir', None,
     'Directory where tfboard log is stored.')
 
 
@@ -24,7 +24,7 @@ def main(argv):
     if len(argv) > 1:
         raise app.UsageError('Too many command-line arguments.')
 
-    job_dir = f"gs://{FLAGS.bucket}/tmp/{FLAGS.pipeline_name}/{FLAGS.job_id}/{FLAGS.log_dir}"
+    job_dir = f"gs://{FLAGS.bucket}/tmp/{FLAGS.pipeline_name}/{FLAGS.job_id}/{FLAGS.tblog_dir}"
     metadata = {
         'outputs' : [{
             'type': 'tensorboard',

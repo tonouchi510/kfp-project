@@ -57,7 +57,7 @@ def pipeline(
             pipeline_name=pipeline_name,
             bucket=bucket_name,
             job_id=job_id,
-            log_dir="training/logs"
+            tblog_dir="training/logs"
         ).set_display_name("tboard")\
             .apply(gcp.use_preemptible_nodepool())
 
