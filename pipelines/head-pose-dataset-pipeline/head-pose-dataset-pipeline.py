@@ -29,7 +29,9 @@ def pipeline(
     with dsl.ExitHandler(
         exit_op=slack_notification_op(
             pipeline_name=pipeline_name,
-            job_id=job_id
+            job_id=job_id,
+            bucket_name=bucket_name,
+            message="Status: {{workflow.status}}"
         )
     ):
         split_task = data_chunk_spliter_op(
