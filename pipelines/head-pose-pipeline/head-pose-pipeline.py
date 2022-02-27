@@ -33,6 +33,8 @@ def pipeline(
         exit_op=slack_notification_op(
             pipeline_name=pipeline_name,
             job_id=job_id,
+            bucket_name=bucket_name,
+            message="Status: {{workflow.status}}"
         )
     ):
         train_op(
@@ -55,7 +57,7 @@ def pipeline(
 
         tensorboard_op(
             pipeline_name=pipeline_name,
-            bucket=bucket_name,
+            bucket_name=bucket_name,
             job_id=job_id,
             tblog_dir="training/logs"
         ).set_display_name("tboard")\

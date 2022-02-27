@@ -8,7 +8,7 @@ flags.DEFINE_string(
     'Name of pipeline')
 
 flags.DEFINE_string(
-    'bucket', 'mitene-ml-research',
+    'bucket_name', '',
     'GCS bucket name')
 
 flags.DEFINE_string(
@@ -24,7 +24,7 @@ def main(argv):
     if len(argv) > 1:
         raise app.UsageError('Too many command-line arguments.')
 
-    job_dir = f"gs://{FLAGS.bucket}/tmp/{FLAGS.pipeline_name}/{FLAGS.job_id}/{FLAGS.tblog_dir}"
+    job_dir = f"gs://{FLAGS.bucket_name}/tmp/{FLAGS.pipeline_name}/{FLAGS.job_id}/{FLAGS.tblog_dir}"
     metadata = {
         'outputs' : [{
             'type': 'tensorboard',
