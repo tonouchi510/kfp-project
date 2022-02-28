@@ -20,7 +20,7 @@ slack_notification_op = component_store.load_component("slack-notification")
 )
 def pipeline(
     pipeline_name: str = "head-pose-pipeline",
-    bucket_name: str = "mitene-ml-research",
+    bucket_name: str = "",
     job_id: str = "{{JOB_ID}}",
     dataset: str = "",
     global_batch_size: int = 1024,
@@ -33,6 +33,8 @@ def pipeline(
         exit_op=slack_notification_op(
             pipeline_name=pipeline_name,
             job_id=job_id,
+            bucket_name=bucket_name,
+            message="Status: {{workflow.status}}"
         )
     ):
         train_op(
@@ -55,9 +57,9 @@ def pipeline(
 
         tensorboard_op(
             pipeline_name=pipeline_name,
-            bucket=bucket_name,
+            bucket_name=bucket_name,
             job_id=job_id,
-            log_dir="training/logs"
+            tblog_dir="training/logs"
         ).set_display_name("tboard")\
             .apply(gcp.use_preemptible_nodepool())
 

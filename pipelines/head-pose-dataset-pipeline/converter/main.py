@@ -4,7 +4,7 @@ import random
 import hashlib
 from absl import app
 from absl import flags
-from typing import Dict
+from typing import Dict, List
 from logging import getLogger
 
 import tensorflow as tf
@@ -72,10 +72,16 @@ def download_blob(bucket_name, source_blob_name):
         print("Blob {} downloaded to {}.".format(source_blob_name, destination_file_name))
 
 
-def decode_jpeg(filename: str):
+def crop_face(filename: str, vertices: List):
     bits = tf.io.read_file(filename)
     image = tf.image.decode_jpeg(bits)
-    image = tf.cast(image, tf.uint8)
+    image = tf.image.crop_to_bounding_box(
+        image,
+        offset_height=vertices[0][1],
+        offset_width=vertices[0][0],
+        target_height=vertices[2][1]-vertices[0][1],
+        target_width=vertices[2][0]-vertices[0][0]
+    )
     image = tf.image.encode_jpeg(
         image, optimize_size=True, chroma_downsampling=False)
     return image
@@ -130,13 +136,18 @@ def detect_faces_uri(client, uri: str):
 
     faces = response.face_annotations
     if not faces:
-        return None, None, None
+        return [], None, None, None
 
     face = faces[0]
+    vertices = []
+    for v in face.fd_bounding_poly.vertices:
+        x = v.x if "x" in v else 0.0
+        y = v.y if "y" in v else 0.0
+        vertices.append((x, y))
     roll = face.roll_angle
     pan = face.pan_angle
     tilt = face.tilt_angle
-    return roll, pan, tilt
+    return vertices, roll, pan, tilt
 
 
 def main(argv):
@@ -173,29 +184,30 @@ def main(argv):
     storage_client = storage.Client()
     bucket = storage_client.bucket(FLAGS.bucket_name)
     os.mkdir("tmp")
-    poses: Dict[str, Dict] = {}
+    results: Dict[str, Dict] = {}
     for filepath in target_files:
-        roll, pan, tilt = detect_faces_uri(
+        vertices, roll, pan, tilt = detect_faces_uri(
             vision_client, f"gs://{FLAGS.bucket_name}/{filepath}")
         if roll or pan or tilt:
             dest = download_media(bucket, filepath)
-            poses[dest] = {
+            results[dest] = {
+                "vertices": vertices,
                 "roll": roll,
                 "pan": pan,
                 "tilt": tilt
             }
-            logger.info(f"{dest}: {str(poses[dest])}")
+            logger.info(f"{dest}: {str(results[dest])}")
         time.sleep(1)
 
     with tf.io.TFRecordWriter(fn) as out_file:
-        for path, pose in poses.items():
+        for path, res in results.items():
             try:
-                image = decode_jpeg(path)
+                image = crop_face(path, res["vertices"])
                 example = to_tfrecord(
                     image_bytes=image.numpy(),
-                    roll=pose["roll"],
-                    pitch=pose["pan"],
-                    yaw=pose["tilt"],
+                    roll=res["roll"],
+                    pitch=res["pan"],
+                    yaw=res["tilt"],
                     filename=path.encode())
                 out_file.write(example.SerializeToString())
             except Exception as e:

@@ -15,7 +15,6 @@ slack_notification_op = component_store.load_component("slack-notification")
     description="hoge hoge fuga fuga"
 )
 def pipeline(
-    project_id: str = ""
     pipeline_name: str = "xxxx-pipeline",
     job_id: str = "{{JOB_ID}}"
 ):
@@ -24,7 +23,7 @@ def pipeline(
             project_id=project_id,
             pipeline=pipeline_name,
             bucket=bucket,
-            jobid=job_id,
+            job_id=job_id,
         )
     ):
         xxxx_task = xxxx_op(

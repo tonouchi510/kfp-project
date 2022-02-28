@@ -5,16 +5,16 @@ implementation:
     command: [
       python3, main.py,
       --pipeline_name, {inputValue: pipeline_name},
-      --bucket, {inputValue: bucket},
+      --bucket_name, {inputValue: bucket_name},
       --job_id, {inputValue: job_id},
-      --log_dir, {inputValue: log_dir},
+      --tblog_dir, {inputValue: tblog_dir},
     ]
     fileOutputs: {mlpipeline-ui-metadata: /mlpipeline-ui-metadata.json}
     
 inputs:
 - {name: pipeline_name, type: String}
-- {name: bucket, type: String}
+- {name: bucket_name, type: String}
 - {name: job_id, type: String}
-- {name: log_dir, type: String}
+- {name: tblog_dir, type: String}
 outputs:
 - {name: mlpipeline-ui-metadata}
