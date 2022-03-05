@@ -9,6 +9,7 @@ component_store = kfp.components.ComponentStore(
 
 # Create component factories
 train_op = component_store.load_component("training")
+eval_op = component_store.load_component("evaluation")
 tensorboard_op = component_store.load_component("tb-observer")
 slack_notification_op = component_store.load_component("slack-notification")
 
@@ -22,12 +23,13 @@ def pipeline(
     pipeline_name: str = "head-pose-pipeline",
     bucket_name: str = "",
     job_id: str = "{{JOB_ID}}",
-    dataset: str = "",
+    model_type: int = 2,
     global_batch_size: int = 1024,
     epochs: int = 30,
     lr: float = 0.001,
-    model_type: int = 2,
     image_size: int = 64,
+    dataset: str = "",
+    test_dataset_name: str = "BIWI",
 ):
     with dsl.ExitHandler(
         exit_op=slack_notification_op(
@@ -37,7 +39,7 @@ def pipeline(
             message="Status: {{workflow.status}}"
         )
     ):
-        train_op(
+        train_task = train_op(
             pipeline=pipeline_name,
             bucket_name=bucket_name,
             job_id=job_id,
@@ -53,6 +55,18 @@ def pipeline(
                 tpu_cores=8,
                 tpu_resource="preemptible-v3",
                 tf_version="2.8.0"))\
+            .set_retry(num_retries=2)
+
+        eval_op(
+            pipeline=pipeline_name,
+            bucket_name=bucket_name,
+            job_id=job_id,
+            model_type=model_type,
+            test_dataset_name=test_dataset_name,
+            image_size=image_size,
+        ).set_display_name("evaluation")\
+            .apply(gcp.use_preemptible_nodepool())\
+            .after(train_task)\
             .set_retry(num_retries=2)
 
         tensorboard_op(

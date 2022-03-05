@@ -147,41 +147,6 @@ def build_model(
             image_size, num_classes, stage_num, lambda_d, S_set
         )()
 
-    elif model_type == 8:
-        num_capsule = 3
-        dim_capsule = 16
-        routings = 2
-
-        num_primcaps = 7 * 3
-        m_dim = 5
-        S_set = [num_capsule, dim_capsule, routings, num_primcaps, m_dim]
-
-        model = models.FSA_net_Metric(image_size, num_classes, stage_num, lambda_d, S_set)()
-
-    elif model_type == 9:
-        num_capsule = 3
-        dim_capsule = 16
-        routings = 2
-
-        num_primcaps = 7 * 3
-        m_dim = 5
-        S_set = [num_capsule, dim_capsule, routings, num_primcaps, m_dim]
-
-        model = models.FSA_net_Var_Metric(
-            image_size, num_classes, stage_num, lambda_d, S_set
-        )()
-    elif model_type == 10:
-        num_capsule = 3
-        dim_capsule = 16
-        routings = 2
-
-        num_primcaps = 8 * 8 * 3
-        m_dim = 5
-        S_set = [num_capsule, dim_capsule, routings, num_primcaps, m_dim]
-
-        model = models.FSA_net_noS_Metric(
-            image_size, num_classes, stage_num, lambda_d, S_set
-        )()
     else:
         raise ValueError("Invalid model_type")
 
@@ -346,6 +311,10 @@ def main(argv):
         bucket = storage_client.bucket(FLAGS.bucket_name)
         blob = bucket.blob(f"{artifacts_dir.replace(f'gs://{FLAGS.bucket_name}/', '')}/history.csv")
         blob.upload_from_filename("history.csv")
+    
+        t.model.save_weights(f"weights.h5")
+        blob = bucket.blob(f"{artifacts_dir.replace(f'gs://{FLAGS.bucket_name}/', '')}/weights.h5")
+        blob.upload_from_filename("weights.h5")
 
     logger.info(f"End of training. model path is {artifacts_dir}/saved_model")
 
