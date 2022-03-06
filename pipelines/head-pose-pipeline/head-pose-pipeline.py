@@ -1,4 +1,3 @@
-from os import pipe
 import kfp
 from kfp import dsl
 from kfp import gcp
