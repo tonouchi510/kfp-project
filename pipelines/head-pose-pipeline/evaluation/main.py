@@ -1,14 +1,14 @@
+import csv
 import os
-import pandas as pd
-import functools
 import numpy as np
 import tensorflow as tf
-from typing import Callable, List
+from typing import List
 from absl import app, flags
 from logging import getLogger
 from google.cloud import storage
 
 import models
+from utils.pipeline import KFPVisualization
 
 logger = getLogger(__name__)
 
@@ -159,7 +159,6 @@ def main(argv):
     if len(argv) > 1:
         raise app.UsageError("Too many command-line arguments.")
 
-    job_dir = f"gs://{FLAGS.bucket_name}/tmp/{FLAGS.pipeline}/{FLAGS.job_id}/evaluation"
     artifacts_dir = f"gs://{FLAGS.bucket_name}/artifacts/{FLAGS.pipeline}/{FLAGS.job_id}/evaluation"
     weight_file = f"gs://{FLAGS.bucket_name}/artifacts/{FLAGS.pipeline}/{FLAGS.job_id}/training/weights.h5"
 
@@ -179,18 +178,38 @@ def main(argv):
         bucket_name=FLAGS.bucket_name,
         source_blob_name=f"datasets/{FLAGS.test_dataset_name}/{FLAGS.test_dataset_name}_test.npz"
     )
-    #test_path = "BIWI_test.npz"
     test_data = np.load(test_path)
     x_test, y_test = test_data["image"], test_data["pose"]
     dataset = create_npydata_pipeline(x_test, y_test)
 
+    diffs = []
     for img, gt_pose in dataset:
-        print(np.shape([img]))
-        pred = model.predict([img])
-        print(pred)
-        print(aaa)
+        img = np.expand_dims(img.numpy(), 0)
+        gt_pose = gt_pose.numpy()
+        pred = model(img).numpy()[0]
+        diffs.append(pred - gt_pose)
 
-    #pose_matrix = np.mean(np.abs(p_data-y_data),axis=0)
+    mae = round(np.mean(diffs))
+    pose_matrix = np.mean(diffs, axis=0)
+    pose_matrix = np.round(pose_matrix, decimals=4)
+    roll_mae, pitch_mae, yaw_mae = pose_matrix
+
+    with open("results.csv", "w") as f:
+        writer = csv.writer(f, lineterminator="\n")
+        writer.writerow([roll_mae, pitch_mae, yaw_mae, mae])
+
+    storage_client = storage.Client()
+    bucket = storage_client.bucket(FLAGS.bucket)
+    blob = bucket.blob(f"{artifacts_dir.replace(f'gs://{FLAGS.bucket}/', '')}/results.csv")
+    blob.upload_from_filename("results.csv")
+
+    v = KFPVisualization(FLAGS.pipeline_name, FLAGS.bucket_name, FLAGS.job_id)
+    v.produce_ui_metadata_table(
+        source=f"{artifacts_dir}/results.csv", header=["roll", "pitch", "yaw", "mae"])
+    v.write_ui_metadata()
+
+    v.produce_metrics(name="mae", value=mae)
+    v.write_metrics()
 
 
 if __name__ == "__main__":
