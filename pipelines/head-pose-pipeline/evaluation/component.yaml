@@ -13,6 +13,10 @@ implementation:
       --test_dataset_name, {inputValue: test_dataset_name},
       --image_size, {inputValue: image_size},
     ]
+    fileOutputs: {
+      mlpipeline-ui-metadata: /mlpipeline-ui-metadata.json,
+      mlpipeline-metrics: /mlpipeline-metrics.json
+    }
 inputs:
 - {name: pipeline, type: String}
 - {name: bucket_name, type: String}
@@ -20,3 +24,6 @@ inputs:
 - {name: model_type, type: Integer}
 - {name: test_dataset_name, type: String}
 - {name: image_size, type: Integer}
+outputs:
+- {name: mlpipeline-ui-metadata}
+- {name: mlpipeline-metrics}

@@ -160,7 +160,11 @@ def main(argv):
         raise app.UsageError("Too many command-line arguments.")
 
     artifacts_dir = f"gs://{FLAGS.bucket_name}/artifacts/{FLAGS.pipeline}/{FLAGS.job_id}/evaluation"
-    weight_file = f"gs://{FLAGS.bucket_name}/artifacts/{FLAGS.pipeline}/{FLAGS.job_id}/training/weights.h5"
+
+    weight_file = download_blob(
+        bucket_name=FLAGS.bucket_name,
+        source_blob_name=f"artifacts/{FLAGS.pipeline}/{FLAGS.job_id}/training/weights.h5"
+    )
 
     stage_num = [3, 3, 3]
     lambda_d = 1
@@ -193,22 +197,24 @@ def main(argv):
     pose_matrix = np.mean(diffs, axis=0)
     pose_matrix = np.round(pose_matrix, decimals=4)
     roll_mae, pitch_mae, yaw_mae = pose_matrix
+    print(f"MAE: {mae}")
+    print(pose_matrix)
 
     with open("results.csv", "w") as f:
         writer = csv.writer(f, lineterminator="\n")
         writer.writerow([roll_mae, pitch_mae, yaw_mae, mae])
 
     storage_client = storage.Client()
-    bucket = storage_client.bucket(FLAGS.bucket)
-    blob = bucket.blob(f"{artifacts_dir.replace(f'gs://{FLAGS.bucket}/', '')}/results.csv")
+    bucket = storage_client.bucket(FLAGS.bucket_name)
+    blob = bucket.blob(f"{artifacts_dir.replace(f'gs://{FLAGS.bucket_name}/', '')}/results.csv")
     blob.upload_from_filename("results.csv")
 
-    v = KFPVisualization(FLAGS.pipeline_name, FLAGS.bucket_name, FLAGS.job_id)
+    v = KFPVisualization(FLAGS.pipeline, FLAGS.bucket_name, FLAGS.job_id)
     v.produce_ui_metadata_table(
         source=f"{artifacts_dir}/results.csv", header=["roll", "pitch", "yaw", "mae"])
     v.write_ui_metadata()
 
-    v.produce_metrics(name="mae", value=mae)
+    v.produce_metrics(name="mae", value=mae, f="RAW")
     v.write_metrics()
 
 

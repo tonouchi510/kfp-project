@@ -254,11 +254,12 @@ def main(argv):
     )
     t.add_callbacks([DecayLearningRate(start_decay_epoch)])
 
+    """ TODO: 同時にposeの反転も必要
     data_augmentation = tf.keras.Sequential([
-        # TODO: tf.keras.layers.RandomFlip("horizontal"),
-        # 同時にposeの反転も必要
-        tf.keras.layers.RandomRotation(0.2, fill_mode="constant"),
+        # tf.keras.layers.RandomFlip("horizontal"),
+        # tf.keras.layers.RandomRotation(0.2, fill_mode="constant"),
     ])
+    """
     if FLAGS.dataset:
         read_tfrecord_func = functools.partial(
             read_tfrecord,
@@ -269,7 +270,6 @@ def main(argv):
             dataset_path=FLAGS.dataset,
             preprocessing=read_tfrecord_func,
             global_batch_size=FLAGS.global_batch_size,
-            data_augmentation=data_augmentation,
             split="train",
         )
         valid_ds = get_tfrecord_dataset(
@@ -296,7 +296,6 @@ def main(argv):
             y_train,
             split="train",
             global_batch_size=FLAGS.global_batch_size,
-            data_augmentation=data_augmentation
         )
         valid_ds = create_npydata_pipeline(
             x_test, y_test, split="valid", global_batch_size=FLAGS.global_batch_size
