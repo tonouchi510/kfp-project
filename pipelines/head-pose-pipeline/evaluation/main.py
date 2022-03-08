@@ -191,7 +191,7 @@ def main(argv):
         img = np.expand_dims(img.numpy(), 0)
         gt_pose = gt_pose.numpy()
         pred = model(img).numpy()[0]
-        diffs.append(pred - gt_pose)
+        diffs.append(np.abs(pred - gt_pose))
 
     mae = round(np.mean(diffs))
     pose_matrix = np.mean(diffs, axis=0)
