@@ -98,7 +98,7 @@ class Training:
             tf.keras.callbacks.TensorBoard(log_dir=f"{self.job_dir}/logs", histogram_freq=1),
             tf.keras.callbacks.TerminateOnNaN(),
             tf.keras.callbacks.ModelCheckpoint(
-                filepath=os.path.join(self.job_dir, "checkpoints/{epoch:05d}.ckpt"),
+                filepath=os.path.join(self.job_dir, "checkpoints/{epoch:05d}"),
                 save_weights_only=True,
                 save_freq="epoch"
             )
@@ -108,7 +108,7 @@ class Training:
         if self.last_epoch == 0:
             self.model = build_model()
         else:
-            checkpoint = f"{self.job_dir}/checkpoints/{self.last_epoch:0>5}.ckpt"
+            checkpoint = f"{self.job_dir}/checkpoints/{self.last_epoch:0>5}"
             self.model = build_model(checkpoint=checkpoint)
 
     def _get_last_epoch(self) -> int:

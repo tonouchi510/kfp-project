@@ -4,6 +4,7 @@ arguments:
   global_batch_size: 1024
   epochs: 3
   lr: 0.001
-  dataset: ""
-  model_type: 2
   image_size: 64
+  model_type: 2
+  dataset: ""
+  test_dataset_name: BIWI

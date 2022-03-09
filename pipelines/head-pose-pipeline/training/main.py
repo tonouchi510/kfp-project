@@ -147,41 +147,6 @@ def build_model(
             image_size, num_classes, stage_num, lambda_d, S_set
         )()
 
-    elif model_type == 8:
-        num_capsule = 3
-        dim_capsule = 16
-        routings = 2
-
-        num_primcaps = 7 * 3
-        m_dim = 5
-        S_set = [num_capsule, dim_capsule, routings, num_primcaps, m_dim]
-
-        model = models.FSA_net_Metric(image_size, num_classes, stage_num, lambda_d, S_set)()
-
-    elif model_type == 9:
-        num_capsule = 3
-        dim_capsule = 16
-        routings = 2
-
-        num_primcaps = 7 * 3
-        m_dim = 5
-        S_set = [num_capsule, dim_capsule, routings, num_primcaps, m_dim]
-
-        model = models.FSA_net_Var_Metric(
-            image_size, num_classes, stage_num, lambda_d, S_set
-        )()
-    elif model_type == 10:
-        num_capsule = 3
-        dim_capsule = 16
-        routings = 2
-
-        num_primcaps = 8 * 8 * 3
-        m_dim = 5
-        S_set = [num_capsule, dim_capsule, routings, num_primcaps, m_dim]
-
-        model = models.FSA_net_noS_Metric(
-            image_size, num_classes, stage_num, lambda_d, S_set
-        )()
     else:
         raise ValueError("Invalid model_type")
 
@@ -289,11 +254,12 @@ def main(argv):
     )
     t.add_callbacks([DecayLearningRate(start_decay_epoch)])
 
+    """ TODO: 同時にposeの反転も必要
     data_augmentation = tf.keras.Sequential([
-        # TODO: tf.keras.layers.RandomFlip("horizontal"),
-        # 同時にposeの反転も必要
-        tf.keras.layers.RandomRotation(0.2, fill_mode="constant"),
+        # tf.keras.layers.RandomFlip("horizontal"),
+        # tf.keras.layers.RandomRotation(0.2, fill_mode="constant"),
     ])
+    """
     if FLAGS.dataset:
         read_tfrecord_func = functools.partial(
             read_tfrecord,
@@ -304,7 +270,6 @@ def main(argv):
             dataset_path=FLAGS.dataset,
             preprocessing=read_tfrecord_func,
             global_batch_size=FLAGS.global_batch_size,
-            data_augmentation=data_augmentation,
             split="train",
         )
         valid_ds = get_tfrecord_dataset(
@@ -331,7 +296,6 @@ def main(argv):
             y_train,
             split="train",
             global_batch_size=FLAGS.global_batch_size,
-            data_augmentation=data_augmentation
         )
         valid_ds = create_npydata_pipeline(
             x_test, y_test, split="valid", global_batch_size=FLAGS.global_batch_size
@@ -346,6 +310,10 @@ def main(argv):
         bucket = storage_client.bucket(FLAGS.bucket_name)
         blob = bucket.blob(f"{artifacts_dir.replace(f'gs://{FLAGS.bucket_name}/', '')}/history.csv")
         blob.upload_from_filename("history.csv")
+    
+        t.model.save_weights(f"weights.h5")
+        blob = bucket.blob(f"{artifacts_dir.replace(f'gs://{FLAGS.bucket_name}/', '')}/weights.h5")
+        blob.upload_from_filename("weights.h5")
 
     logger.info(f"End of training. model path is {artifacts_dir}/saved_model")
 
