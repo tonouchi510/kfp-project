@@ -193,7 +193,7 @@ def main(argv):
         pred = model(img).numpy()[0]
         diffs.append(np.abs(pred - gt_pose))
 
-    mae = round(np.mean(diffs))
+    mae = round(np.mean(diffs), 3)
     pose_matrix = np.mean(diffs, axis=0)
     pose_matrix = np.round(pose_matrix, decimals=4)
     roll_mae, pitch_mae, yaw_mae = pose_matrix
