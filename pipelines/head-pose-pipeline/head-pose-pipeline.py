@@ -39,7 +39,7 @@ def pipeline(
         )
     ):
         train_task = train_op(
-            pipeline=pipeline_name,
+            pipeline_name=pipeline_name,
             bucket_name=bucket_name,
             job_id=job_id,
             global_batch_size=global_batch_size,
@@ -57,7 +57,7 @@ def pipeline(
             .set_retry(num_retries=2)
 
         eval_op(
-            pipeline=pipeline_name,
+            pipeline_name=pipeline_name,
             bucket_name=bucket_name,
             job_id=job_id,
             model_type=model_type,

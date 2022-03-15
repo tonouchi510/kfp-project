@@ -6,7 +6,7 @@ implementation:
     command: [
       poetry, run,
       python3, main.py,
-      --pipeline, {inputValue: pipeline},
+      --pipeline_name, {inputValue: pipeline_name},
       --bucket_name, {inputValue: bucket_name},
       --job_id, {inputValue: job_id},
       --global_batch_size, {inputValue: global_batch_size},
@@ -17,7 +17,7 @@ implementation:
       --image_size, {inputValue: image_size},
     ]
 inputs:
-- {name: pipeline, type: String}
+- {name: pipeline_name, type: String}
 - {name: bucket_name, type: String}
 - {name: job_id, type: String}
 - {name: global_batch_size, type: Integer}

@@ -6,11 +6,10 @@ implementation:
     command: [
       poetry, run,
       python3, main.py,
-      --pipeline, {inputValue: pipeline},
+      --pipeline_name, {inputValue: pipeline_name},
       --bucket_name, {inputValue: bucket_name},
       --job_id, {inputValue: job_id},
       --model_type, {inputValue: model_type},
-      --test_dataset_name, {inputValue: test_dataset_name},
       --image_size, {inputValue: image_size},
     ]
     fileOutputs: {
@@ -18,11 +17,10 @@ implementation:
       mlpipeline-metrics: /mlpipeline-metrics.json
     }
 inputs:
-- {name: pipeline, type: String}
+- {name: pipeline_name, type: String}
 - {name: bucket_name, type: String}
 - {name: job_id, type: String}
 - {name: model_type, type: Integer}
-- {name: test_dataset_name, type: String}
 - {name: image_size, type: Integer}
 outputs:
 - {name: mlpipeline-ui-metadata}

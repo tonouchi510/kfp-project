@@ -22,7 +22,7 @@ np.random.seed(666)
 
 FLAGS = flags.FLAGS
 flags.DEFINE_string(
-    "pipeline", None,
+    "pipeline_name", None,
     "Name of pipeline")
 
 flags.DEFINE_string(
@@ -201,6 +201,7 @@ def download_open_dataset(dataset_path: str) -> Tuple[np.ndarray, np.ndarray]:
     x = np.empty([0, 64, 64, 3])
     y = np.empty([0, 3])
     for b in blobs:
+        print(b.name)
         p = download_blob(
             bucket_name=FLAGS.bucket_name,
             source_blob_name=b.name
@@ -247,8 +248,8 @@ def main(argv):
     if len(argv) > 1:
         raise app.UsageError("Too many command-line arguments.")
 
-    job_dir = f"gs://{FLAGS.bucket_name}/tmp/{FLAGS.pipeline}/{FLAGS.job_id}/training"
-    artifacts_dir = f"gs://{FLAGS.bucket_name}/artifacts/{FLAGS.pipeline}/{FLAGS.job_id}/training"
+    job_dir = f"gs://{FLAGS.bucket_name}/tmp/{FLAGS.pipeline_name}/{FLAGS.job_id}/training"
+    artifacts_dir = f"gs://{FLAGS.bucket_name}/artifacts/{FLAGS.pipeline_name}/{FLAGS.job_id}/training"
 
     start_decay_epoch = [30, 60]
     stage_num = [3, 3, 3]
@@ -301,7 +302,7 @@ def main(argv):
         # datasetの指定がない場合、BIWI(open data)を読み込む
         # datasetの指定がない場合、公開データセットを読み込む
         x_train, y_train = download_open_dataset("datasets/300W-LP")
-        x_test, y_test = download_open_dataset("datasets/head-pose-test-data")
+        x_test, y_test = download_open_dataset("datasets/head-pose-test")
 
         train_ds = create_npydata_pipeline(
             x_train,

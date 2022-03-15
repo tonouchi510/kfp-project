@@ -18,7 +18,7 @@ np.random.seed(666)
 
 FLAGS = flags.FLAGS
 flags.DEFINE_string(
-    "pipeline", None,
+    "pipeline_name", None,
     "Name of pipeline")
 
 flags.DEFINE_string(
@@ -32,10 +32,6 @@ flags.DEFINE_string(
 flags.DEFINE_integer(
     "model_type", 5,
     "Model type for evaluation.")
-
-flags.DEFINE_string(
-    "test_dataset_name", "BIWI",
-    "open dataset name for evaluation.")
 
 flags.DEFINE_integer(
     "image_size", 64,
@@ -178,11 +174,11 @@ def main(argv):
     if len(argv) > 1:
         raise app.UsageError("Too many command-line arguments.")
 
-    artifacts_dir = f"gs://{FLAGS.bucket_name}/artifacts/{FLAGS.pipeline}/{FLAGS.job_id}/evaluation"
+    artifacts_dir = f"gs://{FLAGS.bucket_name}/artifacts/{FLAGS.pipeline_name}/{FLAGS.job_id}/evaluation"
 
     weight_file = download_blob(
         bucket_name=FLAGS.bucket_name,
-        source_blob_name=f"artifacts/{FLAGS.pipeline}/{FLAGS.job_id}/training/weights.h5"
+        source_blob_name=f"artifacts/{FLAGS.pipeline_name}/{FLAGS.job_id}/training/weights.h5"
     )
 
     stage_num = [3, 3, 3]
@@ -223,7 +219,7 @@ def main(argv):
     blob = bucket.blob(f"{artifacts_dir.replace(f'gs://{FLAGS.bucket_name}/', '')}/results.csv")
     blob.upload_from_filename("results.csv")
 
-    v = KFPVisualization(FLAGS.pipeline, FLAGS.bucket_name, FLAGS.job_id)
+    v = KFPVisualization(FLAGS.pipeline_name, FLAGS.bucket_name, FLAGS.job_id)
     v.produce_ui_metadata_table(
         source=f"{artifacts_dir}/results.csv", header=["roll", "pitch", "yaw", "mae"])
     v.write_ui_metadata()
