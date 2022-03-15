@@ -2,7 +2,7 @@ import csv
 import os
 import numpy as np
 import tensorflow as tf
-from typing import List
+from typing import List, Tuple
 from absl import app, flags
 from logging import getLogger
 from google.cloud import storage
@@ -140,6 +140,25 @@ def download_blob(bucket_name, source_blob_name):
     return destination_file_name
 
 
+def download_open_dataset(dataset_path: str) -> Tuple[np.ndarray, np.ndarray]:
+    """評価用公開データセットをダウンロードする.
+    datasets/head-pose-test 以下のデータを使う.
+    """
+    client = storage.Client()
+    blobs = client.list_blobs(FLAGS.bucket_name, prefix=dataset_path)
+    x = np.empty([0, 64, 64, 3])
+    y = np.empty([0, 3])
+    for b in blobs:
+        p = download_blob(
+            bucket_name=FLAGS.bucket_name,
+            source_blob_name=b.name
+        )
+        data = np.load(p)
+        x = np.append(x, data["image"], axis=0)
+        y = np.append(y, data["pose"], axis=0)
+    return x, y
+
+
 def create_npydata_pipeline(
     x: np.ndarray,
     y: np.ndarray,
@@ -178,12 +197,7 @@ def main(argv):
     model.load_weights(weight_file)
     model.summary()
 
-    test_path = download_blob(
-        bucket_name=FLAGS.bucket_name,
-        source_blob_name=f"datasets/{FLAGS.test_dataset_name}/{FLAGS.test_dataset_name}_test.npz"
-    )
-    test_data = np.load(test_path)
-    x_test, y_test = test_data["image"], test_data["pose"]
+    x_test, y_test = download_open_dataset("datasets/head-pose-test")
     dataset = create_npydata_pipeline(x_test, y_test)
 
     diffs = []

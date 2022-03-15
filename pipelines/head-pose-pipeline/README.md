@@ -1,6 +1,16 @@
 # head-pose-pipeline
 
-顔の向き（オイラー角）を推定するAIモデルの学習・評価パイプライン.
+顔の向き（オイラー角）を推定するAIモデルの学習・評価パイプライン.  
+現状は[FSA-Net](https://github.com/shamangary/FSA-Net)を使用.
+
+データセットはhead-pose-dataset-pipelineで作成すること.
+
+## パイプラインパラメータ
+
+- model_type: int		# fsa-netのモデルタイプ
+- image_size: int		# 入力画像サイズ. 指定したサイズにリサイズする.
+- dataset: str			# データセットのGCSパス. 空の場合は公開データセットを使用.
+- test_dataset: str		# データセットのGCSパス. 空の場合は公開データセットを使用.
 
 作成当時のSoTAモデルである[FSA-Net](https://github.com/shamangary/FSA-Net)の公開実装を引用し、AIPlatform Pipelines上で学習できる形にした.
 
@@ -18,6 +28,6 @@ FSA-Netを学習するコンポーネント.
 
 head-pose-datasetパイプラインで作成されたデータセットはあくまでVision APIによる擬似アノテーションなので、人手でアノテーションされている公開データセットを使用して、MAEやroll, pitch, yawごとの精度を算出する.
 
-現状はBIWIデータセットのみ対応している. [ここ](https://github.com/shamangary/FSA-Net#codes)を見て必要なデータをダウンロードして使用してください.
+[ここ](https://github.com/shamangary/FSA-Net#codes)の前処理済みデータセットがあるのでこれを使用させてもらっている. 必要なデータをGCSにダウンロードして使用してください.
 
-例えばBIWIデータセットはダウンロードして`gs://{YOUR_BUCKET_NAME}/datasets/BIWI/`以下に置くこと.
+例えば、データセットはダウンロードして`gs://{YOUR_BUCKET_NAME}/datasets/{dataset_name}/`以下に置くこと.

@@ -3,7 +3,7 @@ import pandas as pd
 import functools
 import numpy as np
 import tensorflow as tf
-from typing import Callable, List
+from typing import Callable, List, Tuple
 from absl import app, flags
 from logging import getLogger
 from google.cloud import storage
@@ -192,6 +192,25 @@ def download_blob(bucket_name, source_blob_name):
     return destination_file_name
 
 
+def download_open_dataset(dataset_path: str) -> Tuple[np.ndarray, np.ndarray]:
+    """公開データセットをダウンロードする.
+    datasets/300W-LP or datasets/head-pose-test 以下のデータを使う.
+    """
+    client = storage.Client()
+    blobs = client.list_blobs(FLAGS.bucket_name, prefix=dataset_path)
+    x = np.empty([0, 64, 64, 3])
+    y = np.empty([0, 3])
+    for b in blobs:
+        p = download_blob(
+            bucket_name=FLAGS.bucket_name,
+            source_blob_name=b.name
+        )
+        data = np.load(p)
+        x = np.append(x, data["image"], axis=0)
+        y = np.append(y, data["pose"], axis=0)
+    return x, y
+
+
 def create_npydata_pipeline(
     x: np.ndarray,
     y: np.ndarray,
@@ -280,16 +299,9 @@ def main(argv):
         )
     else:
         # datasetの指定がない場合、BIWI(open data)を読み込む
-        train_path = download_blob(
-            bucket_name=FLAGS.bucket_name, source_blob_name="datasets/BIWI/BIWI_train.npz"
-        )
-        test_path = download_blob(
-            bucket_name=FLAGS.bucket_name, source_blob_name="datasets/BIWI/BIWI_test.npz"
-        )
-        train_data = np.load(train_path)
-        test_data = np.load(test_path)
-        x_train, y_train = train_data["image"], train_data["pose"]
-        x_test, y_test = test_data["image"], test_data["pose"]
+        # datasetの指定がない場合、公開データセットを読み込む
+        x_train, y_train = download_open_dataset("datasets/300W-LP")
+        x_test, y_test = download_open_dataset("datasets/head-pose-test-data")
 
         train_ds = create_npydata_pipeline(
             x_train,
