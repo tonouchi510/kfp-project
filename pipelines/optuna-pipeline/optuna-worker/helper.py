@@ -1,7 +1,7 @@
 import ast
 from google.cloud import secretmanager
 
-PROJECT_ID = "YOUR_GCP_PROJECT_ID"
+PROJECT_ID = "furyu-nbiz"
 
 
 def access_secret(

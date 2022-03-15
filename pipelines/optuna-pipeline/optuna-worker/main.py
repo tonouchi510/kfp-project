@@ -128,6 +128,8 @@ def main(argv):
         raise app.UsageError("Too many command-line arguments.")
 
     res = access_secret(secret_id="optuna-db-secret")
+    print("=================")
+    print(res)
     study_storage = f"mysql+pymysql://{res['USER']}:{res['PASSWORD']}@localhost/optuna"
 
     study = optuna.create_study(
