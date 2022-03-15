@@ -1,15 +1,14 @@
-import ast
 import yaml
 from absl import flags, app
 from kfp_server_api.rest import ApiException
 from logging import getLogger
 from pipeline import run_pipeline, get_pipeline_result
+from helper import access_secret
 import optuna
 from optuna import Trial
 
 logger = getLogger(__name__)
-PROJECT_ID = "YOUR_PROJECT"
-KFP_HOST = ""
+KFP_HOST = access_secret(secret_id="kubeflow_host")["HOST"]
 
 FLAGS = flags.FLAGS
 flags.DEFINE_string(
@@ -43,26 +42,6 @@ flags.DEFINE_string(
 flags.DEFINE_integer(
     "epochs", 30,
     "Num of training epochs.")
-
-
-def access_secret(
-    secret_id: str,
-    version_id: str = "latest"
-):
-    """
-    Access the payload for the given secret version if one exists. The version
-    can be a version number as a string (e.g. "5") or an alias (e.g. "latest").
-    """
-    from google.cloud import secretmanager
-
-    client = secretmanager.SecretManagerServiceClient()
-
-    name = f"projects/{PROJECT_ID}/secrets/{secret_id}/versions/{version_id}"
-    response = client.access_secret_version(request={"name": name})
-
-    payload = response.payload.data.decode("UTF-8")
-    res = ast.literal_eval(payload)
-    return res
 
 
 def objective(trial: Trial) -> float:
@@ -148,7 +127,6 @@ def main(argv):
     if len(argv) > 1:
         raise app.UsageError("Too many command-line arguments.")
 
-    KFP_HOST = access_secret(secret_id="kubeflow_host")["HOST"]
     res = access_secret(secret_id="optuna-db-secret")
     study_storage = f"mysql+pymysql://{res['USER']}:{res['PASSWORD']}@localhost/optuna"
 

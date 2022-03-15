@@ -79,30 +79,17 @@ jobs:
           fi
           echo "DOCKER_TAG=${docker_tag}" >>$GITHUB_ENV
         
-      - name: Build and push training component
-        id: training_docker_build
-        uses: docker/build-push-action@v2
-        with:
-          file: ./pipelines/${{ env.PIPELINE_NAME }}/training/Dockerfile
-          push: true
-          tags: |
-            gcr.io/${{ env.GCP_PROJECT }}/${{ env.PIPELINE_NAME }}-training:${{ env.DOCKER_TAG }}
-          cache-from: |
-            gcr.io/${{ env.GCP_PROJECT }}/${{ env.PIPELINE_NAME }}-training:${{ env.DOCKER_TAG }}
-            gcr.io/${{ env.GCP_PROJECT }}/${{ env.PIPELINE_NAME }}-training:latest
-          cache-to: type=inline
-      
-      - name: Build and push evaluation component
+      - name: Build and push optuna-worker component
         id: evalation_docker_build
         uses: docker/build-push-action@v2
         with:
-          file: ./pipelines/${{ env.PIPELINE_NAME }}/evaluation/Dockerfile
+          file: ./pipelines/${{ env.PIPELINE_NAME }}/optuna-worker/Dockerfile
           push: true
           tags: |
-            gcr.io/${{ env.GCP_PROJECT }}/${{ env.PIPELINE_NAME }}-evaluation:${{ env.DOCKER_TAG }}
+            gcr.io/${{ env.GCP_PROJECT }}/${{ env.PIPELINE_NAME }}-optuna-worker:${{ env.DOCKER_TAG }}
           cache-from: |
-            gcr.io/${{ env.GCP_PROJECT }}/${{ env.PIPELINE_NAME }}-evaluation:${{ env.DOCKER_TAG }}
-            gcr.io/${{ env.GCP_PROJECT }}/${{ env.PIPELINE_NAME }}-evaluation:latest
+            gcr.io/${{ env.GCP_PROJECT }}/${{ env.PIPELINE_NAME }}-optuna-worker:${{ env.DOCKER_TAG }}
+            gcr.io/${{ env.GCP_PROJECT }}/${{ env.PIPELINE_NAME }}-optuna-worker:latest
           cache-to: type=inline
       
   compile-pipeline-and-run:

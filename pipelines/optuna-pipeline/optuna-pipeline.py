@@ -27,7 +27,7 @@ sidecar = kfp.dsl.Sidecar(
 )
 def pipeline(
     pipeline_name: str = "optuna-pipeline",
-    bucket: str = "",
+    bucket_name: str = "",
     job_id: str = "{{JOB_ID}}",
     n_trials: int = 100,
     n_jobs: int = 5,
@@ -37,15 +37,15 @@ def pipeline(
 ):
     with dsl.ExitHandler(
         exit_op=slack_notification_op(
-            pipeline=pipeline_name,
-            bucket=bucket,
-            jobid=job_id,
+            pipeline_name=pipeline_name,
+            bucket_name=bucket_name,
+            job_id=job_id,
             message="Status: {{workflow.status}}"
         ).add_node_selector_constraint("cloud.google.com/gke-nodepool", "main-pool")
     ):
         optuna_op(
             pipeline_name=pipeline_name,
-            bucket=bucket,
+            bucket_name=bucket_name,
             job_id=job_id,
             n_trials=n_trials,
             n_jobs=n_jobs,
