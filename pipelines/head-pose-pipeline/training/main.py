@@ -197,11 +197,15 @@ def download_open_dataset(dataset_path: str) -> Tuple[np.ndarray, np.ndarray]:
     datasets/300W-LP or datasets/head-pose-test 以下のデータを使う.
     """
     client = storage.Client()
-    blobs = client.list_blobs(FLAGS.bucket_name, prefix=dataset_path)
+    blobs = client.list_blobs(
+        FLAGS.bucket_name,
+        prefix=dataset_path
+    )
     x = np.empty([0, 64, 64, 3])
     y = np.empty([0, 3])
     for b in blobs:
-        print(b.name)
+        if b.name == f"{dataset_path}/":
+            continue
         p = download_blob(
             bucket_name=FLAGS.bucket_name,
             source_blob_name=b.name

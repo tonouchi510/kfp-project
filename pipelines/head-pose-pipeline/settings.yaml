@@ -7,4 +7,3 @@ arguments:
   image_size: 64
   model_type: 2
   dataset: ""
-  test_dataset_name: BIWI

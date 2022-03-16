@@ -28,7 +28,6 @@ def pipeline(
     lr: float = 0.001,
     image_size: int = 64,
     dataset: str = "",
-    test_dataset_name: str = "BIWI",
 ):
     with dsl.ExitHandler(
         exit_op=slack_notification_op(
@@ -61,7 +60,6 @@ def pipeline(
             bucket_name=bucket_name,
             job_id=job_id,
             model_type=model_type,
-            test_dataset_name=test_dataset_name,
             image_size=image_size,
         ).set_display_name("evaluation")\
             .apply(gcp.use_preemptible_nodepool())\
