@@ -1,9 +1,11 @@
 import csv
 import os
+import cv2
 import numpy as np
 import tensorflow as tf
 from typing import List, Tuple
 from absl import app, flags
+from math import cos, sin
 from logging import getLogger
 from google.cloud import storage
 
@@ -175,11 +177,47 @@ def create_npydata_pipeline(
     return dataset
 
 
+def draw_axis(img: np.ndarray, yaw, pitch, roll, tdx=None, tdy=None, size = 80):
+
+    pitch = pitch * np.pi / 180
+    yaw = -(yaw * np.pi / 180)
+    roll = roll * np.pi / 180
+
+    if tdx != None and tdy != None:
+        tdx = tdx
+        tdy = tdy
+    else:
+        height, width = img.shape[:2]
+        tdx = width / 2
+        tdy = height / 2
+
+    # X-Axis pointing to right. drawn in red
+    x1 = size * (cos(yaw) * cos(roll)) + tdx
+    y1 = size * (cos(pitch) * sin(roll) + cos(roll) * sin(pitch) * sin(yaw)) + tdy
+
+    # Y-Axis | drawn in green
+    #        v
+    x2 = size * (-cos(yaw) * sin(roll)) + tdx
+    y2 = size * (cos(pitch) * cos(roll) - sin(pitch) * sin(yaw) * sin(roll)) + tdy
+
+    # Z-Axis (out of the screen) drawn in blue
+    x3 = size * (sin(yaw)) + tdx
+    y3 = size * (-cos(yaw) * sin(pitch)) + tdy
+
+    cv2.line(img, (int(tdx), int(tdy)), (int(x1),int(y1)),(0,0,255),3)
+    cv2.line(img, (int(tdx), int(tdy)), (int(x2),int(y2)),(0,255,0),3)
+    cv2.line(img, (int(tdx), int(tdy)), (int(x3),int(y3)),(255,0,0),2)
+
+    return img
+
+
 def main(argv):
     if len(argv) > 1:
         raise app.UsageError("Too many command-line arguments.")
 
     artifacts_dir = f"gs://{FLAGS.bucket_name}/artifacts/{FLAGS.pipeline_name}/{FLAGS.job_id}/evaluation"
+    storage_client = storage.Client()
+    bucket = storage_client.bucket(FLAGS.bucket_name)
 
     weight_file = download_blob(
         bucket_name=FLAGS.bucket_name,
@@ -202,11 +240,20 @@ def main(argv):
     dataset = create_npydata_pipeline(x_test, y_test)
 
     diffs = []
+    n = 1
     for img, gt_pose in dataset:
         img = np.expand_dims(img.numpy(), 0)
         gt_pose = gt_pose.numpy()
+        # prediction
         pred = model(img).numpy()[0]
         diffs.append(np.abs(pred - gt_pose))
+        # draw result & upload
+        if n <= 30:
+            draw_img = draw_axis(img[0], pred[0][0], pred[0][1], pred[0][2])
+            cv2.imwrite(f"{n}.png", draw_img)
+            blob = bucket.blob(f"{artifacts_dir.replace(f'gs://{FLAGS.bucket_name}/', '')}/imgs/{n}.png")
+            blob.upload_from_filename(f"{n}.png")
+            n += 1
 
     mae = round(np.mean(diffs), 3)
     pose_matrix = np.mean(diffs, axis=0)
@@ -219,8 +266,6 @@ def main(argv):
         writer = csv.writer(f, lineterminator="\n")
         writer.writerow([roll_mae, pitch_mae, yaw_mae, mae])
 
-    storage_client = storage.Client()
-    bucket = storage_client.bucket(FLAGS.bucket_name)
     blob = bucket.blob(f"{artifacts_dir.replace(f'gs://{FLAGS.bucket_name}/', '')}/results.csv")
     blob.upload_from_filename("results.csv")
 
