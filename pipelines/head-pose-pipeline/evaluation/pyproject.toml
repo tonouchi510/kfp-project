@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "training"
+name = "evaluation"
 version = "0.1.0"
 description = ""
 authors = ["tonouchi27 <tonouchi27@gmail.com>"]
@@ -10,7 +10,7 @@ google-cloud-storage = "^2.1.0"
 PyYAML = "^6.0"
 setuptools = "^60.8.0"
 tensorflow = "^2.8.0"
-pandas = "^1.4.0"
+opencv-python = "^4.5.5"
 
 [tool.poetry.dev-dependencies]
 

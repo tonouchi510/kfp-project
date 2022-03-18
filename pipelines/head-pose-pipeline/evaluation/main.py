@@ -3,7 +3,7 @@ import os
 import cv2
 import numpy as np
 import tensorflow as tf
-from typing import List, Tuple
+from typing import List
 from absl import app, flags
 from math import cos, sin
 from logging import getLogger
@@ -34,6 +34,10 @@ flags.DEFINE_string(
 flags.DEFINE_integer(
     "model_type", 5,
     "Model type for evaluation.")
+
+flags.DEFINE_string(
+    "test_dataset", "",
+    "dataset gcs path for evaluation.")
 
 flags.DEFINE_integer(
     "image_size", 64,
@@ -138,40 +142,34 @@ def download_blob(bucket_name, source_blob_name):
     return destination_file_name
 
 
-def download_open_dataset(dataset_path: str) -> Tuple[np.ndarray, np.ndarray]:
-    """評価用公開データセットをダウンロードする.
-    datasets/head-pose-test 以下のデータを使う.
-    """
-    client = storage.Client()
-    blobs = client.list_blobs(
-        FLAGS.bucket_name,
-        prefix=dataset_path
-    )
-    x = np.empty([0, 64, 64, 3])
-    y = np.empty([0, 3])
-    for b in blobs:
-        if b.name == f"{dataset_path}/":
-            continue
-        p = download_blob(
-            bucket_name=FLAGS.bucket_name,
-            source_blob_name=b.name
-        )
-        data = np.load(p)
-        x = np.append(x, data["image"], axis=0)
-        y = np.append(y, data["pose"], axis=0)
-    return x, y
-
-
-def create_npydata_pipeline(
-    x: np.ndarray,
-    y: np.ndarray,
+def get_dataset(
+    dataset_path: str,
+    image_size: int
 ):
-    dataset = tf.data.Dataset.from_tensor_slices((x, y))
-    option = tf.data.Options()
+    def read_tfrecord(
+        example,
+        size: int,
+    ):
+        # decode the TFRecord
+        features = {
+            "image": tf.io.FixedLenFeature([], tf.string, default_value=""),
+            "roll": tf.io.FixedLenFeature([], tf.float32),
+            "pitch": tf.io.FixedLenFeature([], tf.float32),
+            "yaw": tf.io.FixedLenFeature([], tf.float32)
+        }
+        example = tf.io.parse_single_example(example, features)
+        x = tf.image.decode_png(example["image"], channels=3)
+        x /= 255.
+        roll = example["roll"]
+        pitch = example["pitch"]
+        yaw = example["yaw"]
+        return x, [roll, pitch, yaw]
 
-    option.experimental_deterministic = True
+    file_names = tf.io.gfile.glob(f"{dataset_path}/valid-*.tfrec")
+
+    dataset = tf.data.TFRecordDataset(file_names, num_parallel_reads=tf.data.AUTOTUNE)
     dataset = (
-        dataset.with_options(option)
+        dataset.map(lambda x: read_tfrecord(x, image_size), num_parallel_calls=tf.data.AUTOTUNE)
         .prefetch(tf.data.AUTOTUNE)
     )
     return dataset
@@ -236,11 +234,9 @@ def main(argv):
     model.load_weights(weight_file)
     model.summary()
 
-    x_test, y_test = download_open_dataset("datasets/head-pose-test")
-    dataset = create_npydata_pipeline(x_test, y_test)
-
-    diffs = []
     n = 1
+    diffs = []
+    dataset = get_dataset(dataset_path=FLAGS.test_dataset, image_size=FLAGS.image_size)
     for img, gt_pose in dataset:
         img = np.expand_dims(img.numpy(), 0)
         gt_pose = gt_pose.numpy()
@@ -249,10 +245,11 @@ def main(argv):
         diffs.append(np.abs(pred - gt_pose))
         # draw result & upload
         if n <= 30:
-            draw_img = draw_axis(img[0], pred[0][0], pred[0][1], pred[0][2])
+            draw_img = draw_axis(img[0], pred[0], pred[1], pred[2])
+            draw_img *= 255
             cv2.imwrite(f"{n}.png", draw_img)
             blob = bucket.blob(f"{artifacts_dir.replace(f'gs://{FLAGS.bucket_name}/', '')}/imgs/{n}.png")
-            blob.upload_from_filename(f"{n}.png")
+            blob.upload_from_filename(f"{n:05d}.png")
             n += 1
 
     mae = round(np.mean(diffs), 3)

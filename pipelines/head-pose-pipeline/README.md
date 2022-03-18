@@ -26,8 +26,6 @@ FSA-Netを学習するコンポーネント.
 
 ### evaluation
 
-head-pose-datasetパイプラインで作成されたデータセットはあくまでVision APIによる擬似アノテーションなので、人手でアノテーションされている公開データセットを使用して、MAEやroll, pitch, yawごとの精度を算出する.
+評価用TFRecordを読み込んで顔向き推定結果のオイラー角のMAEやroll, pitch, yawごとの精度を算出する.  
 
-[ここ](https://github.com/shamangary/FSA-Net#codes)の前処理済みデータセットがあるのでこれを使用させてもらっている. 必要なデータをGCSにダウンロードして使用してください.
-
-例えば、データセットはダウンロードして`gs://{YOUR_BUCKET_NAME}/datasets/{dataset_name}/`以下に置くこと.
+head-pose-datasetパイプラインで作成されたデータセットはあくまでVision APIによる擬似アノテーションなので、人手でアノテーションされている公開データセットを使用して評価を行う. なお、[ここ](https://github.com/shamangary/FSA-Net#codes)の前処理済みデータセットがあるのでこれをTFRecord化して使用させてもらっている. 必要なデータをGCSにアップロードして使用してください.
