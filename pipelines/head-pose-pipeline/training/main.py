@@ -3,7 +3,7 @@ import pandas as pd
 import functools
 import numpy as np
 import tensorflow as tf
-from typing import Callable, List, Tuple
+from typing import List
 from absl import app, flags
 from logging import getLogger
 from google.cloud import storage
@@ -192,62 +192,6 @@ def download_blob(bucket_name, source_blob_name):
     return destination_file_name
 
 
-def download_open_dataset(dataset_path: str) -> Tuple[np.ndarray, np.ndarray]:
-    """公開データセットをダウンロードする.
-    datasets/300W-LP or datasets/head-pose-test 以下のデータを使う.
-    """
-    client = storage.Client()
-    blobs = client.list_blobs(
-        FLAGS.bucket_name,
-        prefix=dataset_path
-    )
-    x = np.empty([0, 64, 64, 3])
-    y = np.empty([0, 3])
-    for b in blobs:
-        if b.name == f"{dataset_path}/":
-            continue
-        p = download_blob(
-            bucket_name=FLAGS.bucket_name,
-            source_blob_name=b.name
-        )
-        data = np.load(p)
-        x = np.append(x, data["image"], axis=0)
-        y = np.append(y, data["pose"], axis=0)
-    return x, y
-
-
-def create_npydata_pipeline(
-    x: np.ndarray,
-    y: np.ndarray,
-    split: str,
-    global_batch_size: int,
-    data_augmentation: Callable = lambda x: x,
-):
-    dataset = tf.data.Dataset.from_tensor_slices((x, y))
-    option = tf.data.Options()
-
-    if split == "train":
-        option.experimental_deterministic = False
-        dataset = (
-            dataset.with_options(option)
-            .map(
-                lambda x, *y: (data_augmentation(x), *y),
-                num_parallel_calls=tf.data.AUTOTUNE,
-            )
-            .shuffle(512, reshuffle_each_iteration=True)
-            .batch(global_batch_size, drop_remainder=True)
-            .prefetch(tf.data.AUTOTUNE)
-        )
-    else:
-        option.experimental_deterministic = True
-        dataset = (
-            dataset.with_options(option)
-            .batch(global_batch_size, drop_remainder=False)
-            .prefetch(tf.data.AUTOTUNE)
-        )
-    return dataset
-
-
 def main(argv):
     if len(argv) > 1:
         raise app.UsageError("Too many command-line arguments.")
@@ -284,39 +228,23 @@ def main(argv):
         # tf.keras.layers.RandomRotation(0.2, fill_mode="constant"),
     ])
     """
-    if FLAGS.dataset:
-        read_tfrecord_func = functools.partial(
-            read_tfrecord,
-            size=FLAGS.image_size,
-        )
+    read_tfrecord_func = functools.partial(
+        read_tfrecord,
+        size=FLAGS.image_size,
+    )
 
-        train_ds = get_tfrecord_dataset(
-            dataset_path=FLAGS.dataset,
-            preprocessing=read_tfrecord_func,
-            global_batch_size=FLAGS.global_batch_size,
-            split="train",
-        )
-        valid_ds = get_tfrecord_dataset(
-            dataset_path=FLAGS.dataset,
-            preprocessing=read_tfrecord_func,
-            global_batch_size=FLAGS.global_batch_size,
-            split="valid",
-        )
-    else:
-        # datasetの指定がない場合、BIWI(open data)を読み込む
-        # datasetの指定がない場合、公開データセットを読み込む
-        x_train, y_train = download_open_dataset("datasets/300W-LP")
-        x_test, y_test = download_open_dataset("datasets/head-pose-test")
-
-        train_ds = create_npydata_pipeline(
-            x_train,
-            y_train,
-            split="train",
-            global_batch_size=FLAGS.global_batch_size,
-        )
-        valid_ds = create_npydata_pipeline(
-            x_test, y_test, split="valid", global_batch_size=FLAGS.global_batch_size
-        )
+    train_ds = get_tfrecord_dataset(
+        dataset_path=FLAGS.dataset,
+        preprocessing=read_tfrecord_func,
+        global_batch_size=FLAGS.global_batch_size,
+        split="train",
+    )
+    valid_ds = get_tfrecord_dataset(
+        dataset_path=FLAGS.dataset,
+        preprocessing=read_tfrecord_func,
+        global_batch_size=FLAGS.global_batch_size,
+        split="valid",
+    )
 
     history = t.run_train(train_ds, valid_ds, FLAGS.epochs)
     if history:
