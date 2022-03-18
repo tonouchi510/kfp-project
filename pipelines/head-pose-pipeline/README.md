@@ -14,6 +14,12 @@
 
 作成当時のSoTAモデルである[FSA-Net](https://github.com/shamangary/FSA-Net)の公開実装を引用し、AIPlatform Pipelines上で学習できる形にした.
 
+### パイプライン成果物
+- 顔向き推定の学習済みモデル(SavedModel形式)
+- 精度評価の結果
+  - MAEおよびyaw, pitch, rollごとのMAE
+  - 推定結果の描画画像
+
 ## Components
 
 ### training
