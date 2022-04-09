@@ -3,29 +3,58 @@
 Kubeflow Pipelinesで開発を始める際のテンプレートです。  
 管理やCI/CDをやりやすくするためのディレクトリ設計になってます。
 
+## パイプラインサンプル
+
+GCPを前提にしており、本番サービス用のパイプラインはVertex Pipelines, 実験用パイプラインはAI-Platform Pipelinesを使う想定で実装例を用意しています.
+
+#### vertex ai pipelines
+- hello-world-pipeilne
+  - 一番シンプルな実装例
+- load-featurestore-pipeline
+  - BigQueryからFeatureStoreにデータをロードするパイプライン
+- online-training-pipeline
+  - WIP
+  - FeatureStoreからデータを取得し、学習するパイプライン
+
+#### AIPlatform Pipelines
+- head-pose-dataset-pipeline
+  - vision apiを使って顔向き推定用のデータセットを作成するパイプライン
+  - 他のラベルを公開apiで擬似アノテーションする際にもほぼ同様なので参考にしてください
+- head-pose-pipeline
+  - 上記顔向き推定データセットを使用して学習を行うパイプライン
+  - tfでのトレーニングパイプラインの実装例として参考までに
+
+vertexかaiplatformで若干コードやbuild.yamlが異なるので注意してください.
+
 ## パイプライン開発
 
 パイプラインの一つのステップであるコンポーネントを開発し、それらの組み合わせでパイプラインを構築する。
+
+この辺のリポジトリの実装例が参考になる.
+- https://github.com/kubeflow/pipelines/tree/master/samples
+- https://github.com/ksalama/kubeflow-examples/tree/master/kfp-cloudbuild
 
 ### ディレクトリ構成
 
 ```
 $ tree -L 3 -d
 .
-├── base                            # baseにするdockerイメージ置き場。共通化や本番環境との統一化が目的。
-├── configs                         # 設定ファイル置き場
 ├── components                      # 共通で使える汎用コンポーネントの置き場
-│   ├── slack-notification            # slack通知を行うためのコンポーネント
-│   └── tb-observer                   # TensorBoardを起動するためのコンポーネント
+│   ├── slack-notification          # slack通知を行うためのコンポーネント
+│   └── tb-observer                 # TensorBoardを起動するためのコンポーネント
 ├── pipelines                       # 各種パイプラインの実装
-│   ├── hello-world-pipeline          # パイプラインの定義やパイプライン固有のコンポーネントの実装
+│   ├── head-pose-dataset-pipeline
+│   │   ├── data-chunk-spliter
+│   │   └── pose-annotation
+│   ├── head-pose-pipeline
+│   │   ├── evaluation
+│   │   └── training
+│   ├── hello-world-pipeline
 │   │   └── hello
-│   ├── dataset-pipeline
-│   │   ├── tfrecord-converter
-│   │   └── parallelizer
-│   └── training-pipeline
+│   ├── load-featurestore-pipeline
+│   │   └── load
+│   └── online-training-pipeline
 │       └── training
-├── tests
 └── utils                           # 共通の便利関数の置き場
 ```
 
@@ -36,13 +65,12 @@ $ tree -L 3 -d
 Pipeline_X
 ├── Component_A          # コンポーネントのコード置き場
 ├── Component_B
-├── settings.debug.yaml  # 開発中にCIで実行する際のデバッグ実行用パラメータを記述
-├── settings.yaml        # masterブランチマージ時にCIで実行する際のパラメータを記述
+├── settings.yaml        # 開発中にCIでデバッグ実行する際のパラメータを記述
 └── xxx-pipeline.py      # パイプライン定義ファイル。kfpのDSLを使用して構築する。
 ```
 
 #### componentの構成
-コンポーネント毎にDockerイメージを用意して開発する。`base`ディレクトリにあるイメージを元にして作成する。  
+コンポーネント毎にDockerイメージを用意して開発する。  
 また、specファイルを活用してコンポーネントの仕様を定義する。
 
 ```
@@ -57,27 +85,25 @@ Pipeline_X
 
 ### CI/CD
 
-GCPのVertex AI Pipelinesで実行することを前提としています。多少修正すれば他のインフラにデプロイすることも可能です。
+GCPのAI Platform PipelinesもしくはVertex AI Pipelinesで実行することを前提としています。  
+他の基盤にデプロイする場合は適宜yamlファイルを修正してください。
 
 [こちらのリポジトリ](https://github.com/ksalama/kubeflow-examples/tree/master/kfp-cloudbuild)にある図のフローを参考にしている。
-CloudBuild用に作られている部分をGitHub Actionsに変更している。また、複数パイプラインのデプロイに対応させています。
+CloudBuild用に作られている部分をGitHub Actionsに変更している.  
+パイプラインごとにyamlファイルを用意する必要があります.
 
 ![Pipeline CI/CD flow](https://github.com/ksalama/kubeflow-examples/raw/master/kfp-cloudbuild/resources/cloudbuild-steps.png)
 
 main以外のブランチにプッシュされたときは、settings.debug.yamlから読み込まれたパラメータが使用され、job_idのプレフィックスにdebugが付与されます(ダッシュボード上の検索で使用)。
 
-※注意：
-- 複数パイプラインをこのリポジトリで一元管理している都合上、どのパイプライン・コンポーネントをRebuildするか制御するために、現状では`.github/workflows/deploy-targets.txt`で指定する必要がある
-  - 将来的にもう少し便利なビルド制御を行えるようにしたい
-
 ## GCPサービス
 
 以下のGCPサービスを使うことを想定している。サンプルコードは既にこれらのサービスにアクセスするので事前に有効化してください。
 
-- Vertex AI Pipelines: ここで構築したパイプラインの実行環境
+- AI Platform Pipelines: 実験用パイプラインの実行環境
+- Vertex AI Pipelines: 本番サービス用パイプラインの実行環境
 - CloudTPU: トレーニングパイプラインの効率化のために利用
 - GCS: パイプラインの成果物・一時ファイルの保存に使用
 - GCR: コンポーネントイメージのpush & pullに使用
 - SecretManager: 実行時に必要となるSecretをここから取得する想定
-  - 現状はslack-notificationコンポーネントでwebhook url取得するために使ってる
 - ServiceAccount: github actions実行用、パイプライン実行用に2つ必要
