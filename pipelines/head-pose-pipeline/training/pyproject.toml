@@ -2,15 +2,16 @@
 name = "training"
 version = "0.1.0"
 description = ""
-authors = ["tonouchi27 <tonouchi27@gmail.com>"]
+authors = ["tonouchi510 <tonouchi27@gmail.com>"]
 
 [tool.poetry.dependencies]
 python = "^3.9,<3.10"
-google-cloud-storage = "^2.1.0"
-PyYAML = "^6.0"
-setuptools = "^60.8.0"
 tensorflow = "^2.8.0"
-pandas = "^1.4.0"
+google-cloud-storage = "^2.2.1"
+opencv-python = "^4.5.5"
+pandas = "^1.4.1"
+absl-py = "^1.0.0"
+PyYAML = "^6.0"
 
 [tool.poetry.dev-dependencies]
 

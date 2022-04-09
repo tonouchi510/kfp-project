@@ -1,15 +1,14 @@
 import os
-import pandas as pd
 import functools
+import pandas as pd
 import numpy as np
 import tensorflow as tf
-from typing import Callable, List
+from typing import List
 from absl import app, flags
 from logging import getLogger
 from google.cloud import storage
 
 from utils.trainer import Training, get_tfrecord_dataset
-from utils.data import preprocess_image
 from util import DecayLearningRate
 import models
 
@@ -22,7 +21,7 @@ np.random.seed(666)
 
 FLAGS = flags.FLAGS
 flags.DEFINE_string(
-    "pipeline", None,
+    "pipeline_name", None,
     "Name of pipeline")
 
 flags.DEFINE_string(
@@ -42,7 +41,7 @@ flags.DEFINE_integer(
     "Number of epochs to train for.")
 
 flags.DEFINE_float(
-    "learning_rate", 0.0001,
+    "learning_rate", 0.001,
     "Initial learning rate per batch size of 256.")
 
 flags.DEFINE_string(
@@ -146,6 +145,17 @@ def build_model(
         model = models.FSA_net_noS_NetVLAD(
             image_size, num_classes, stage_num, lambda_d, S_set
         )()
+    
+    elif model_type == 8:
+        # ベースラインのResNet
+        inputs = tf.keras.layers.Input((image_size, image_size, 3))
+        base_model = tf.keras.applications.resnet50.ResNet50(
+            include_top=False, weights="imagenet", input_tensor=None,
+            )
+        h = base_model(inputs, training=True)
+        h = tf.keras.layers.GlobalAveragePooling2D()(h)
+        head = tf.keras.layers.Dense(num_classes, name="head", activation="softmax")(h)
+        model = tf.keras.models.Model(inputs=inputs, outputs=head)
 
     else:
         raise ValueError("Invalid model_type")
@@ -172,11 +182,12 @@ def read_tfrecord(
 
     example = tf.io.parse_single_example(example, features)
     x = tf.image.decode_png(example["image"], channels=3)
-    x = preprocess_image(x, size)
-    roll = example["roll"]
-    pitch = example["pitch"]
+    x /= 255
+    x = tf.image.resize_with_pad(x, size, size, method="bilinear", antialias=False)
     yaw = example["yaw"]
-    return x, (roll, pitch, yaw)
+    pitch = example["pitch"]
+    roll = example["roll"]
+    return x, [yaw, pitch, roll]
 
 
 def download_blob(bucket_name, source_blob_name):
@@ -188,48 +199,36 @@ def download_blob(bucket_name, source_blob_name):
     destination_file_name = os.path.basename(source_blob_name)
     blob = bucket.blob(source_blob_name)
     blob.download_to_filename(destination_file_name)
-    print("Blob {} downloaded to {}.".format(source_blob_name, destination_file_name))
+    logger.info("Blob {} downloaded to {}.".format(source_blob_name, destination_file_name))
     return destination_file_name
 
 
-def create_npydata_pipeline(
-    x: np.ndarray,
-    y: np.ndarray,
-    split: str,
-    global_batch_size: int,
-    data_augmentation: Callable = lambda x: x,
-):
-    dataset = tf.data.Dataset.from_tensor_slices((x, y))
-    option = tf.data.Options()
+def data_augment_pose(x,y):
+    def augment_data(image):
+        rand_r = np.random.random()
+        h, w, c = image.get_shape()
+        dn = np.random.randint(15,size=1)[0]+1
+        if  rand_r < 0.25:
+            image = tf.image.random_crop(image, size=[h-dn, w-dn, c])
+            image = tf.image.resize(image, size=[h, w])
+        elif rand_r >= 0.25 and rand_r < 0.75:
+            image = tf.image.resize_with_crop_or_pad(image, h+dn, w+dn)
+            image = tf.image.random_crop(image, size=[h, w, c])
+        """
+        if np.random.random() > 0.3:
+            image = tf.keras.preprocessing.image.random_zoom(image, [0.8,1.2], row_axis=0, col_axis=1, channel_axis=2)
+        """
+        return image
 
-    if split == "train":
-        option.experimental_deterministic = False
-        dataset = (
-            dataset.with_options(option)
-            .map(
-                lambda x, *y: (data_augmentation(x), *y),
-                num_parallel_calls=tf.data.AUTOTUNE,
-            )
-            .shuffle(512, reshuffle_each_iteration=True)
-            .batch(global_batch_size, drop_remainder=True)
-            .prefetch(tf.data.AUTOTUNE)
-        )
-    else:
-        option.experimental_deterministic = True
-        dataset = (
-            dataset.with_options(option)
-            .batch(global_batch_size, drop_remainder=False)
-            .prefetch(tf.data.AUTOTUNE)
-        )
-    return dataset
+    return augment_data(x), y
 
 
 def main(argv):
     if len(argv) > 1:
         raise app.UsageError("Too many command-line arguments.")
 
-    job_dir = f"gs://{FLAGS.bucket_name}/tmp/{FLAGS.pipeline}/{FLAGS.job_id}/training"
-    artifacts_dir = f"gs://{FLAGS.bucket_name}/artifacts/{FLAGS.pipeline}/{FLAGS.job_id}/training"
+    job_dir = f"gs://{FLAGS.bucket_name}/tmp/{FLAGS.pipeline_name}/{FLAGS.job_id}/training"
+    artifacts_dir = f"gs://{FLAGS.bucket_name}/artifacts/{FLAGS.pipeline_name}/{FLAGS.job_id}/training"
 
     start_decay_epoch = [30, 60]
     stage_num = [3, 3, 3]
@@ -254,52 +253,24 @@ def main(argv):
     )
     t.add_callbacks([DecayLearningRate(start_decay_epoch)])
 
-    """ TODO: 同時にposeの反転も必要
-    data_augmentation = tf.keras.Sequential([
-        # tf.keras.layers.RandomFlip("horizontal"),
-        # tf.keras.layers.RandomRotation(0.2, fill_mode="constant"),
-    ])
-    """
-    if FLAGS.dataset:
-        read_tfrecord_func = functools.partial(
-            read_tfrecord,
-            size=FLAGS.image_size,
-        )
+    read_tfrecord_func = functools.partial(
+        read_tfrecord,
+        size=FLAGS.image_size,
+    )
 
-        train_ds = get_tfrecord_dataset(
-            dataset_path=FLAGS.dataset,
-            preprocessing=read_tfrecord_func,
-            global_batch_size=FLAGS.global_batch_size,
-            split="train",
-        )
-        valid_ds = get_tfrecord_dataset(
-            dataset_path=FLAGS.dataset,
-            preprocessing=read_tfrecord_func,
-            global_batch_size=FLAGS.global_batch_size,
-            split="valid",
-        )
-    else:
-        # datasetの指定がない場合、BIWI(open data)を読み込む
-        train_path = download_blob(
-            bucket_name=FLAGS.bucket_name, source_blob_name="datasets/BIWI/BIWI_train.npz"
-        )
-        test_path = download_blob(
-            bucket_name=FLAGS.bucket_name, source_blob_name="datasets/BIWI/BIWI_test.npz"
-        )
-        train_data = np.load(train_path)
-        test_data = np.load(test_path)
-        x_train, y_train = train_data["image"], train_data["pose"]
-        x_test, y_test = test_data["image"], test_data["pose"]
-
-        train_ds = create_npydata_pipeline(
-            x_train,
-            y_train,
-            split="train",
-            global_batch_size=FLAGS.global_batch_size,
-        )
-        valid_ds = create_npydata_pipeline(
-            x_test, y_test, split="valid", global_batch_size=FLAGS.global_batch_size
-        )
+    train_ds = get_tfrecord_dataset(
+        dataset_path=FLAGS.dataset,
+        preprocessing=read_tfrecord_func,
+        global_batch_size=FLAGS.global_batch_size,
+        data_augmentation=data_augment_pose,
+        split="train",
+    )
+    valid_ds = get_tfrecord_dataset(
+        dataset_path=FLAGS.dataset,
+        preprocessing=read_tfrecord_func,
+        global_batch_size=FLAGS.global_batch_size,
+        split="valid",
+    )
 
     history = t.run_train(train_ds, valid_ds, FLAGS.epochs)
     if history:

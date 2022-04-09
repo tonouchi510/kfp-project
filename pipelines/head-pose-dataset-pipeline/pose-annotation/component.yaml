@@ -1,4 +1,4 @@
-name: converter
+name: pose-annotation
 implementation:
   container:
     image: gcr.io/

@@ -32,7 +32,7 @@ jobs:
         uses: actions/checkout@v2
       
       - name: Setup Authentication with gcloud
-        uses: google-github-actions/setup-gcloud@master
+        uses: google-github-actions/setup-gcloud@v0
         with:
           service_account_key: ${{ env.GCP_SERVICE_ACCOUNT_KEY }}
           export_default_credentials: true
@@ -61,7 +61,7 @@ jobs:
         uses: actions/checkout@v2
       
       - name: Setup Authentication with gcloud
-        uses: google-github-actions/setup-gcloud@master
+        uses: google-github-actions/setup-gcloud@v0
         with:
           service_account_key: ${{ env.GCP_SERVICE_ACCOUNT_KEY }}
           export_default_credentials: true
@@ -91,17 +91,17 @@ jobs:
             gcr.io/${{ env.GCP_PROJECT }}/${{ env.PIPELINE_NAME }}-data-chunk-spliter:latest
           cache-to: type=inline
       
-      - name: Build and push converter component
-        id: docker_build_converter
+      - name: Build and push pose-annotation component
+        id: docker_build_pose_annotation
         uses: docker/build-push-action@v2
         with:
-          file: ./pipelines/${{ env.PIPELINE_NAME }}/converter/Dockerfile
+          file: ./pipelines/${{ env.PIPELINE_NAME }}/pose-annotation/Dockerfile
           push: true
           tags: |
-            gcr.io/${{ env.GCP_PROJECT }}/${{ env.PIPELINE_NAME }}-converter:${{ env.DOCKER_TAG }}
+            gcr.io/${{ env.GCP_PROJECT }}/${{ env.PIPELINE_NAME }}-pose-annotation:${{ env.DOCKER_TAG }}
           cache-from: |
-            gcr.io/${{ env.GCP_PROJECT }}/${{ env.PIPELINE_NAME }}-converter:${{ env.DOCKER_TAG }}
-            gcr.io/${{ env.GCP_PROJECT }}/${{ env.PIPELINE_NAME }}-converter:latest
+            gcr.io/${{ env.GCP_PROJECT }}/${{ env.PIPELINE_NAME }}-pose-annotation:${{ env.DOCKER_TAG }}
+            gcr.io/${{ env.GCP_PROJECT }}/${{ env.PIPELINE_NAME }}-pose-annotation:latest
           cache-to: type=inline
       
   compile-pipeline-and-run:
@@ -112,7 +112,7 @@ jobs:
         uses: actions/checkout@v2
       
       - name: Setup Authentication with gcloud
-        uses: google-github-actions/setup-gcloud@master
+        uses: google-github-actions/setup-gcloud@v0
         with:
           service_account_key: ${{ env.GCP_SERVICE_ACCOUNT_KEY }}
           export_default_credentials: true

@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "converter"
+name = "pose-annotation"
 version = "0.1.0"
 description = ""
 authors = ["tonouchi510 <tonouchi27@gmail.com>"]

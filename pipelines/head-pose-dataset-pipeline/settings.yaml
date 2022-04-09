@@ -1,7 +1,7 @@
 arguments:
   pipeline_name: debug
-  bucket_name: ""
-  job_id: xxxx
-  dataset: ""
-  chunk_size: 500
-  valid_ratio: 0.1
+  bucket_name: kfp-project
+  job_id: xxxxx
+  dataset: gs://kfp-project/datasets/debug
+  chunk_size: 300
+  valid_ratio: 0.2

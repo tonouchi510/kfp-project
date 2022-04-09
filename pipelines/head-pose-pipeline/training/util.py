@@ -24,6 +24,7 @@ class DecayLearningRate(tf.keras.callbacks.Callback):
                 ratio = 0.1
             LR = K.get_value(self.model.optimizer.lr)
             K.set_value(self.model.optimizer.lr, LR * ratio)
+            print("\nEpoch %05d: Learning rate is %6.4f." % (epoch, LR * ratio))
 
         return
 
