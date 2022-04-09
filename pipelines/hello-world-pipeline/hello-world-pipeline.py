@@ -28,7 +28,7 @@ def pipeline(
             job_id=job_id,
         )
     ):
-        hello_task = hello_op(
+        hello_op(
             message=message,
         ).apply(gcp.use_preemptible_nodepool()) \
             .set_retry(num_retries=2)
