@@ -3,13 +3,13 @@ name: head-pose-pipeline-build
 on:
   push:
     branches:
-      - master
+      - main
     paths:
       - "pipelines/head-pose-pipeline/**/*"
       - ".github/workflows/head-pose-pipeline-build.yaml"
   pull_request:
     branches:
-      - master
+      - main
     paths:
       - "pipelines/head-pose-pipeline/**/*"
       - ".github/workflows/head-pose-pipeline-build.yaml"

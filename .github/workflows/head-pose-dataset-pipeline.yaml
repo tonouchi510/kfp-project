@@ -3,13 +3,13 @@ name: head-pose-dataset-pipeline-build
 on:
   push:
     branches:
-      - master
+      - main
     paths:
       - "pipelines/head-pose-dataset-pipeline/**/*"
       - ".github/workflows/head-pose-dataset-pipeline-build.yaml"
   pull_request:
     branches:
-      - master
+      - main
     paths:
       - "pipelines/head-pose-dataset-pipeline/**/*"
       - ".github/workflows/head-pose-dataset-pipeline-build.yaml"
