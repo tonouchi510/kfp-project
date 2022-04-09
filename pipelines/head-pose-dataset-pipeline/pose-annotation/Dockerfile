@@ -5,7 +5,7 @@ ENV PATH $PATH:/tools/node/bin:/tools/google-cloud-sdk/bin
 ENV PATH /root/.local/bin:$PATH
 
 WORKDIR /workspace
-COPY pipelines/head-pose-dataset-pipeline/converter/* ./
+COPY pipelines/head-pose-dataset-pipeline/pose-annotation/* ./
 COPY utils ./utils
 
 RUN apt-get update && \

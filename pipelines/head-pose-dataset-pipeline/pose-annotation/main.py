@@ -16,11 +16,11 @@ logger = getLogger(__name__)
 
 FLAGS = flags.FLAGS
 flags.DEFINE_string(
-    "pipeline", "owl-pipeline",
+    "pipeline", "head-pose-dataset-pipeline",
     "Name of pipeline")
 
 flags.DEFINE_string(
-    "bucket_name", "mitene-ml-research",
+    "bucket_name", "",
     "GCS bucket name")
 
 flags.DEFINE_string(
@@ -72,7 +72,7 @@ def download_blob(bucket_name, source_blob_name):
         print("Blob {} downloaded to {}.".format(source_blob_name, destination_file_name))
 
 
-def crop_face(filename: str, vertices: List):
+def crop_face(filename: str, vertices: List, flip: bool=False):
     bits = tf.io.read_file(filename)
     image = tf.image.decode_jpeg(bits)
     image = tf.image.crop_to_bounding_box(
@@ -82,6 +82,8 @@ def crop_face(filename: str, vertices: List):
         target_height=vertices[2][1]-vertices[0][1],
         target_width=vertices[2][0]-vertices[0][0]
     )
+    if flip:
+        image = tf.image.flip_left_right(image)
     image = tf.image.encode_jpeg(
         image, optimize_size=True, chroma_downsampling=False)
     return image
@@ -100,9 +102,9 @@ def download_media(bucket, filepath: str) -> str:
 
 def to_tfrecord(
     image_bytes: bytes,
-    roll: float,
-    pitch: float,
     yaw: float,
+    pitch: float,
+    roll: float,
     filename: bytes
 ):
     def _bytestring_feature(value):
@@ -113,9 +115,9 @@ def to_tfrecord(
 
     features = {
         "image": _bytestring_feature([image_bytes]),
-        "roll": _float_feature([roll]),
-        "pitch": _float_feature([pitch]),
         "yaw": _float_feature([yaw]),
+        "pitch": _float_feature([pitch]),
+        "roll": _float_feature([roll]),
         "filename": _bytestring_feature([filename])
     }
     example = tf.train.Example(features=tf.train.Features(feature=features))
@@ -205,14 +207,29 @@ def main(argv):
                 image = crop_face(path, res["vertices"])
                 example = to_tfrecord(
                     image_bytes=image.numpy(),
+                    yaw=-res["pan"],  # yawとpanの角度は逆向き
+                    pitch=res["tilt"],
                     roll=res["roll"],
-                    pitch=res["pan"],
-                    yaw=res["tilt"],
                     filename=path.encode())
                 out_file.write(example.SerializeToString())
             except Exception as e:
-                logger.error(e)
-                exit(-1)
+                logger.warn(e)
+                continue
+            
+            try:
+                # データ拡張（水平フリップ）
+                flip_image = crop_face(path, res["vertices"], flip=True)
+                flip_example = to_tfrecord(
+                    image_bytes=flip_image.numpy(),
+                    yaw=res["pan"],  # 符号反転
+                    pitch=res["tilt"],
+                    roll=-res["roll"],  # 符号反転
+                    filename=path.encode())
+                out_file.write(flip_example.SerializeToString())
+            except Exception as e:
+                logger.warn(e)
+                continue
+
     logger.info("Done.")
 
 

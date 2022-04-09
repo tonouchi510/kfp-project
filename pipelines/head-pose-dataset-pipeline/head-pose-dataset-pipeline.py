@@ -7,7 +7,7 @@ component_store = kfp.components.ComponentStore(
     local_search_paths=["pipelines/head-pose-dataset-pipeline", "components"])
 
 # Create component factories
-converter_op = component_store.load_component("converter")
+pose_annotation_op = component_store.load_component("pose-annotation")
 data_chunk_spliter_op = component_store.load_component("data-chunk-spliter")
 slack_notification_op = component_store.load_component("slack-notification")
 
@@ -19,7 +19,7 @@ slack_notification_op = component_store.load_component("slack-notification")
 )
 def pipeline(
     pipeline_name: str = "head-pose-dataset-pipeline",
-    bucket_name: str = "",
+    bucket_name: str = "kfp-project",
     job_id: str = "{{JOB_ID}}",
     dataset: str = "",
     chunk_size: int = 1000,
@@ -44,7 +44,7 @@ def pipeline(
             .set_retry(num_retries=2)
 
         with dsl.ParallelFor(split_task.output) as item:
-            converter_op(
+            pose_annotation_op(
                 pipeline=pipeline_name,
                 bucket_name=bucket_name,
                 job_id=job_id,
