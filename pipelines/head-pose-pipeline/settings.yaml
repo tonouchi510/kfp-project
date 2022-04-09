@@ -1,9 +1,10 @@
 arguments:
-  bucket_name: ""
+  bucket_name: kfp-project
   job_id: xxxx
   global_batch_size: 1024
   epochs: 3
   lr: 0.001
   image_size: 64
-  model_type: 2
-  dataset: ""
+  model_type: 7
+  dataset: gs://kfp-project/datasets/300W-LP-debug
+  test_dataset: gs://kfp-project/datasets/300W-LP-debug

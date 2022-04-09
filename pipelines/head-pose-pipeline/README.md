@@ -5,7 +5,7 @@
 
 データセットはhead-pose-dataset-pipelineで作成すること.
 
-## パイプラインパラメータ
+### パイプラインパラメータ
 
 - model_type: int		# fsa-netのモデルタイプ
 - image_size: int		# 入力画像サイズ. 指定したサイズにリサイズする.
@@ -35,3 +35,7 @@ FSA-Netを学習するコンポーネント.
 評価用TFRecordを読み込んで顔向き推定結果のオイラー角のMAEやroll, pitch, yawごとの精度を算出する.  
 
 head-pose-datasetパイプラインで作成されたデータセットはあくまでVision APIによる擬似アノテーションなので、人手でアノテーションされている公開データセットを使用して評価を行う. なお、[ここ](https://github.com/shamangary/FSA-Net#codes)の前処理済みデータセットがあるのでこれをTFRecord化して使用させてもらっている. 必要なデータをGCSにアップロードして使用してください.
+
+また、確認用に推定結果を描画した画像も一部生成し、artifactsフォルダに保存しているので、予測結果の目視チェックを行いたい場合はそちらを確認してください.
+=>
+```gs://kfp-project/artifacts/head-pose-pipeline/{job_id}/evaluation/imgs/```
