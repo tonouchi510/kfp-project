@@ -13,7 +13,7 @@ def get_tfrecord_dataset(
     preprocessing: Callable,
     global_batch_size: int,
     split: str,
-    data_augmentation: Callable = lambda x: x,
+    data_augmentation: Callable = lambda x, y: (x, y),
 ) -> TFRecordDatasetV2:
     """TFRecordからデータパイプラインを構築する.
 
@@ -44,7 +44,7 @@ def get_tfrecord_dataset(
         option.experimental_deterministic = False
         dataset = dataset.with_options(option) \
             .map(lambda example: preprocessing(example=example), num_parallel_calls=tf.data.AUTOTUNE) \
-            .map(lambda x, *y: (data_augmentation(x), *y)) \
+            .map(lambda x, y: data_augmentation(x, y)) \
             .shuffle(512, reshuffle_each_iteration=True) \
             .batch(global_batch_size, drop_remainder=True) \
             .prefetch(tf.data.AUTOTUNE)
