@@ -17,9 +17,8 @@ on:
 env:
   GCP_PROJECT: ${{ secrets.GCP_PROJECT_ID }}
   GCP_REGION: ${{ secrets.GCP_REGION }}
-  PIPELINE_ROOT: ${{ secrets.PIPELINE_ROOT }}
-  GCP_SERVICE_ACCOUNT_KEY: ${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}
-  VERTEX_SERVICE_ACCOUNT_NAME: ${{ secrets.VERTEX_SERVICE_ACCOUNT_NAME }}
+  GACTIONS_SERVICE_ACCOUNT_KEY: ${{ secrets.GACTIONS_SERVICE_ACCOUNT_KEY }}
+  AIP_SERVICE_ACCOUNT_NAME: ${{ secrets.AIP_SERVICE_ACCOUNT_NAME }}
   KUBEFLOW_HOST: ${{ secrets.KUBEFLOW_HOST }}
   GOOGLE_APPLICATION_CREDENTIALS: "searvice-account.json"
   PIPELINE_NAME: "head-pose-dataset-pipeline"
@@ -34,7 +33,7 @@ jobs:
       - name: Setup Authentication with gcloud
         uses: google-github-actions/setup-gcloud@v0
         with:
-          service_account_key: ${{ env.GCP_SERVICE_ACCOUNT_KEY }}
+          service_account_key: ${{ env.GACTIONS_SERVICE_ACCOUNT_KEY }}
           export_default_credentials: true
       
       - name: Set up Python 3.9
@@ -63,7 +62,7 @@ jobs:
       - name: Setup Authentication with gcloud
         uses: google-github-actions/setup-gcloud@v0
         with:
-          service_account_key: ${{ env.GCP_SERVICE_ACCOUNT_KEY }}
+          service_account_key: ${{ env.GACTIONS_SERVICE_ACCOUNT_KEY }}
           export_default_credentials: true
       
       - name: Configure docker to use the gcloud cli
@@ -114,7 +113,7 @@ jobs:
       - name: Setup Authentication with gcloud
         uses: google-github-actions/setup-gcloud@v0
         with:
-          service_account_key: ${{ env.GCP_SERVICE_ACCOUNT_KEY }}
+          service_account_key: ${{ env.GACTIONS_SERVICE_ACCOUNT_KEY }}
           export_default_credentials: true
       
       - name: Set up Python 3.9
@@ -144,7 +143,7 @@ jobs:
           echo "**********************************************"
           echo "Update component image_tag to ${{ env.DOCKER_TAG }}"
           echo "**********************************************"
-          poetry run python .github/workflows/helper.py update-specs \
+          poetry run python .github/workflows/helper-aiplatform.py update-specs \
             --target_dir "pipelines/${{ env.PIPELINE_NAME }}" --image_tag "${{ env.DOCKER_TAG }}"
       
       - name: Compile pipeline
@@ -162,9 +161,9 @@ jobs:
           echo "Deploy ${{ env.PIPELINE_NAME }}"
           echo "**********************************************"
           if [ "${{ github.event_name }}" = "pull_request" ]; then
-            poetry run python .github/workflows/helper.py deploy-pipeline \
+            poetry run python .github/workflows/helper-aiplatform.py deploy-pipeline \
               --pipeline_name "${{ env.PIPELINE_NAME }}" --version "${{ env.DOCKER_TAG }}" --run
           else
-            poetry run python .github/workflows/helper.py deploy-pipeline \
+            poetry run python .github/workflows/helper-aiplatform.py deploy-pipeline \
               --pipeline_name "${{ env.PIPELINE_NAME }}" --version "${{ env.DOCKER_TAG }}" --is_master
           fi

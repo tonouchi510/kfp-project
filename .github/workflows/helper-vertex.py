@@ -21,8 +21,9 @@ import time
 from kfp.v2.google.client import AIPlatformClient
 
 PROJECT_ID = os.environ.get("GCP_PROJECT")
-KUBEFLOW_HOST = os.environ.get("KUBEFLOW_HOST")
+REGION = os.environ.get("GCP_REGION")
 SERVICE_ACCOUNT_NAME = os.environ.get("VERTEX_SERVICE_ACCOUNT_NAME")
+PIPELINE_ROOT = os.environ.get('PIPELINE_ROOT')
 PIPELINE_DIR = "pipelines"
 
 
@@ -81,12 +82,12 @@ def run_pipeline(
     print(f"Run {job_id}")
     try:
         client = AIPlatformClient(
-            project_id=os.environ.get("GCP_PROJECT"), region=os.environ.get("GCP_REGION"))
+            project_id=PROJECT_ID, region=REGION)
 
         response = client.create_run_from_job_spec(
             kfp_package_path,
             job_id=job_id,
-            pipeline_root=f"{os.environ.get('PIPELINE_ROOT')}/{version}",
+            pipeline_root=f"{PIPELINE_ROOT}/{version}",
             parameter_values=settings,
             service_account=SERVICE_ACCOUNT_NAME
         )

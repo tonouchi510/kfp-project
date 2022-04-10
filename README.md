@@ -11,6 +11,7 @@ GCPを前提にしており、本番サービス用のパイプラインはVerte
 - hello-world-pipeilne
   - 一番シンプルな実装例
 - load-featurestore-pipeline
+  - WIP
   - BigQueryからFeatureStoreにデータをロードするパイプライン
 - online-training-pipeline
   - WIP
@@ -93,8 +94,6 @@ CloudBuild用に作られている部分をGitHub Actionsに変更している.
 パイプラインごとにyamlファイルを用意する必要があります.
 
 ![Pipeline CI/CD flow](https://github.com/ksalama/kubeflow-examples/raw/master/kfp-cloudbuild/resources/cloudbuild-steps.png)
-
-main以外のブランチにプッシュされたときは、settings.debug.yamlから読み込まれたパラメータが使用され、job_idのプレフィックスにdebugが付与されます(ダッシュボード上の検索で使用)。
 
 ## GCPサービス
 

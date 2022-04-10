@@ -1,7 +1,0 @@
-arguments:
-  bucket_name: kfp-project
-  job_id: xxxx
-  location: us-central1
-  api_endpoint: us-central1-aiplatform.googleapis.com
-  featurestore_id: test_fs
-  bq_table_name: auto-mpg
