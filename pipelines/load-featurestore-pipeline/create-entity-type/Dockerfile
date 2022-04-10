@@ -5,7 +5,7 @@ ENV PATH $PATH:/tools/node/bin:/tools/google-cloud-sdk/bin
 ENV PATH /root/.local/bin:$PATH
 
 WORKDIR /workspace
-COPY pipelines/load-featurestore-pipeline/load/* ./
+COPY pipelines/load-featurestore-pipeline/create-entity-type/* ./
 
 RUN apt-get update && \
     DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \

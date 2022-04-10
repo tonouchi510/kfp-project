@@ -7,7 +7,7 @@ from typing import List
 
 FLAGS = flags.FLAGS
 flags.DEFINE_string(
-    "project_id", "",
+    "project_name", "",
     "id of gcp project.")
 
 flags.DEFINE_string(
@@ -124,22 +124,17 @@ def import_feature_values(
     feature_time_field: str,
     worker_count: int = 2,
 ):
-    # 現状はcsv形式のみ対応
-    csv_source = aiplatform.gapic.CsvSource(
-        gcs_source=aiplatform.gapic.GcsSource(uris=[csv_gcs_uri])
-    )
-
     feature_specs = map(
         lambda column_name: aiplatform.gapic.ImportFeatureValuesRequest.FeatureSpec(id=column_name), column_names)
 
     import_feature_values_request = aiplatform.gapic.ImportFeatureValuesRequest(
         entity_type=entity_type,
-        csv_source=csv_source,
+        bigquery_source=aiplatform.gapic.BigQuerySource(input_uri="bq://furyu-nbiz.furyu_ml.auto-mpg"),
         feature_specs=feature_specs,
         entity_id_field=entity_id_field,
-        feature_time_field=feature_time_field,
         worker_count=worker_count,
     )
+
     lro_response = client.import_feature_values(request=import_feature_values_request)
     print("Long running operation:", lro_response.operation.name)
     import_feature_values_response = lro_response.result(timeout=2000)
