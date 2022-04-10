@@ -51,18 +51,19 @@ def update_component_spec(target_dir: str, image_tag: str):
         print(f"Component {image_name} specs updated. Image: {full_image_name}")
 
 
-def read_settings(pipeline_name: str, version: str, is_debug: bool):
-    """Read all the parameter values from the settings.yaml file."""
-    if is_debug:
-        job_id = f"debug-{version}"
-        settings_file = os.path.join(PIPELINE_DIR, pipeline_name, "settings.debug.yaml")
-    else:
-        job_id = f"{pipeline_name}-{version}"
-        settings_file = os.path.join(PIPELINE_DIR, pipeline_name, "settings.yaml")
+def read_settings(pipeline_name: str, version: str):
+    """Read all the parameter values from the settings.yaml file.
+    Args:
+        pipeline_name (str): パイプライン名.
+        version (str): パイプラインのバージョン.
+    Returns:
+        [type]: [description]
+    """
+    settings_file = os.path.join(PIPELINE_DIR, pipeline_name, "settings.yaml")
     flat_settings = dict()
     setting_sections = yaml.safe_load(pathlib.Path(settings_file).read_text())
     for sections in setting_sections:
-        setting_sections[sections]["job_id"] = job_id
+        setting_sections[sections]["job_id"] = version
         flat_settings.update(setting_sections[sections])
     return flat_settings
 
@@ -71,12 +72,11 @@ def run_pipeline(
     kfp_package_path: str,
     pipeline_name: str,
     version: str,
-    is_debug: bool
 ) -> None:
     """Deploy and run the givne kfp_package_path."""
     t = int(time.time())
-    job_id = f"debug-{version}-{t}" if is_debug else f"{pipeline_name}-{version}-{t}"
-    settings = read_settings(pipeline_name, version, is_debug)
+    job_id = f"debug-{version}-{t}"
+    settings = read_settings(pipeline_name, version)
 
     print(f"Run {job_id}")
     try:
@@ -124,9 +124,7 @@ def main(operation, **args):
             raise ValueError("version has to be supplied.")
         version = args["version"]
 
-        is_debug = True if "debug" in args else False
-
-        run_pipeline(package_path, pipeline_name, version, is_debug)
+        run_pipeline(package_path, pipeline_name, version)
 
     # Check params
     elif operation == "read-settings":
@@ -139,9 +137,7 @@ def main(operation, **args):
             raise ValueError("github_sha has to be supplied.")
         version = args["version"]
 
-        is_debug = True if "debug" in args else False
-
-        params = read_settings(pipeline_dir, version, is_debug)
+        params = read_settings(pipeline_dir, version)
         print(params)
 
     else:

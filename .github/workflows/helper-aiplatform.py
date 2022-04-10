@@ -21,7 +21,7 @@ import kfp
 
 PROJECT_ID = os.environ.get("GCP_PROJECT")
 KUBEFLOW_HOST = os.environ.get("KUBEFLOW_HOST")
-SERVICE_ACCOUNT_NAME = os.environ.get("VERTEX_SERVICE_ACCOUNT_NAME")
+SERVICE_ACCOUNT_NAME = os.environ.get("AIP_SERVICE_ACCOUNT_NAME")
 PIPELINE_DIR = "pipelines"
 
 

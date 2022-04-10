@@ -12,17 +12,12 @@ do
   case "$OPT" in
     -h|--help)
       echo "-p: pipeline name"
-      echo "-b: bucket name"
       echo "-j: job id (dataset file name)"
       echo "--msg: message string to notify slack."
       exit
       ;;
     -p|--pipeline_name)
       export PIPELINE_NAME=$2
-      shift 2
-      ;;
-    -b|--bucket_name)
-      export BUCKET=$2
       shift 2
       ;;
     -j|--job_id)
@@ -42,9 +37,6 @@ do
       ;;
   esac
 done
-
-# 将来的にSecret Managerへのアクセス権限与えるので、そこからとるようにする.
-#URL=$(gcloud secrets versions access latest --secret="kfp-slack-webhook-url")
 
 # WebHookのURL
 URL=$(gcloud secrets versions access latest --secret="kfp-slack-webhook-url" --quiet)

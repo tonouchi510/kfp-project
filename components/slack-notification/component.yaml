@@ -5,12 +5,10 @@ implementation:
     command: [
       /usr/local/bin/entrypoint.sh,
       --pipeline_name, {inputValue: pipeline_name},
-      --bucket_name, {inputValue: bucket_name},
       --job_id, {inputValue: job_id},
       --message, {inputValue: message},
     ]
 inputs:
 - {name: pipeline_name, type: String}
-- {name: bucket_name, type: String}
 - {name: job_id, type: String}
 - {name: message, type: String}
