@@ -64,7 +64,6 @@ def read_settings(pipeline_name: str, version: str):
     setting_sections = yaml.safe_load(pathlib.Path(settings_file).read_text())
     for sections in setting_sections:
         setting_sections[sections]["job_id"] = version
-        setting_sections[sections]["pipeline_name"] = "debug"
         flat_settings.update(setting_sections[sections])
     return flat_settings
 

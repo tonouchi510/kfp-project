@@ -133,7 +133,7 @@ jobs:
           poetry run python .github/workflows/helper-vertex.py update-specs \
             --target_dir "pipelines/${{ env.PIPELINE_NAME }}" --image_tag "${{ env.DOCKER_TAG }}"
       
-      - name: Compile pipeline
+      - name: Compile and upload pipeline package
         run: |
           pipeline_file=pipelines/${{ env.PIPELINE_NAME }}/${{ env.PIPELINE_NAME }}.py
           echo "**********************************************"
@@ -144,6 +144,7 @@ jobs:
           echo "Upload ${{ env.PIPELINE_NAME }}.json to ${{ env.PIPELINE_ROOT }}"
           echo "**********************************************"
           gsutil cp ${{ env.PIPELINE_NAME }}.json ${{ env.PIPELINE_ROOT }}/${{ env.DOCKER_TAG }}/
+          gsutil cp ${{ env.PIPELINE_NAME }}.json ${{ env.PIPELINE_ROOT }}/latest/
 
       - name: Run pipeline
         run: |

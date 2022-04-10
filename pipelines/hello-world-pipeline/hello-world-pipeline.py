@@ -10,7 +10,6 @@ component_store = kfp.components.ComponentStore(
 
 # Create component factories
 hello_op = component_store.load_component("hello")
-slack_notification_op = component_store.load_component("slack-notification")
 
 
 # Define pipeline
@@ -22,17 +21,10 @@ def pipeline(
     job_id: str = "xxxx",
     message: str = "hello world",
 ):
-    with dsl.ExitHandler(
-        exit_op=slack_notification_op(
-            pipeline_name=PIPELINE_NAME,
-            job_id=job_id,
-            message="Status: {{workflow.status}}"
-        )
-    ):
-        hello_op(
-            message=message,
-        ).apply(gcp.use_preemptible_nodepool()) \
-            .set_retry(num_retries=2)
+    hello_op(
+        message=message,
+    ).apply(gcp.use_preemptible_nodepool()) \
+        .set_retry(num_retries=2)
 
 
 if __name__ == "__main__":
