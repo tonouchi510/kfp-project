@@ -26,6 +26,7 @@ def pipeline(
         exit_op=slack_notification_op(
             pipeline_name=PIPELINE_NAME,
             job_id=job_id,
+            message="Status: {{workflow.status}}"
         )
     ):
         hello_op(
