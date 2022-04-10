@@ -30,7 +30,6 @@ def pipeline(
         exit_op=slack_notification_op(
             pipeline_name=pipeline_name,
             job_id=job_id,
-            bucket_name=bucket_name,
             message="Status: {{workflow.status}}"
         )
     ):
