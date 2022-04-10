@@ -11,6 +11,7 @@ GCPを前提にしており、本番サービス用のパイプラインはVerte
 - hello-world-pipeilne
   - 一番シンプルな実装例
 - load-featurestore-pipeline
+  - WIP
   - BigQueryからFeatureStoreにデータをロードするパイプライン
 - online-training-pipeline
   - WIP
