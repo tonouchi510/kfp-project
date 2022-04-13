@@ -1,0 +1,29 @@
+name: optuna-worker
+description: oputuna master worker
+implementation:
+  container:
+    image: gcr.io/
+    command: [
+      poetry, run,
+      python, main.py,
+      --pipeline_name, {inputValue: pipeline_name},
+      --bucket_name, {inputValue: bucket_name},
+      --job_id, {inputValue: job_id},
+      --n_trials, {inputValue: n_trials},
+      --n_jobs, {inputValue: n_jobs},
+      --training_pipeline_name, {inputValue: training_pipeline_name},
+      --dataset, {inputValue: dataset},
+      --epochs, {inputValue: epochs},
+    ]
+    fileOutputs: {out: /tmp/out.txt}
+inputs:
+- {name: pipeline_name, type: String}
+- {name: bucket_name, type: String}
+- {name: job_id, type: String}
+- {name: n_trials, type: Integer}
+- {name: n_jobs, type: Integer}
+- {name: training_pipeline_name, type: String}
+- {name: dataset, type: String}
+- {name: epochs, type: Integer}
+outputs:
+- {name: out}
