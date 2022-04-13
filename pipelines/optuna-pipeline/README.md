@@ -4,8 +4,6 @@ AIモデル学習におけるハイパーパラメータの自動チューニン
 
 optunaとkubeflow pipelinesを組み合わせ、最適化を並列に実行できるようにしている.
 
-実装はこちらを一部参照 => https://lab.mo-t.com/blog/optuna-kfp-hyperparameter-tuning
-
 ## 使い方
 
 何らかのAIモデル学習用のパイプラインが既にあり、ハイパラチューニングが必要な場合は利用推奨。
@@ -62,39 +60,6 @@ def create_settings(trial):
 - 他の各種パラメータも目的の値に変更し、実行すればOK
 
 ### トレーニングパイプラインの実装注意
-- チューニングしたいパラメータは、予め学習パイプラインの方でパイプラインパラメータ化しておく必要があります
-- optuna-workerで各学習ジョブのHistoryからlossを見て最適化を行うように実装しているので、学習パイプライン側でもHistoryをartifactsとして保存しておく必要があります
-- early stoppingを入れておくことを推奨します
-
-
-## 実験結果の可視化
-
-[optuna-dashboard](https://github.com/optuna/optuna-dashboard)を使用する.  
-パラメータの寄与度や最適化の様子をグラフで確認できる.
-
-### 手順
-
-※将来的にkfpの一つのコンポーネントとして実装したいが、現状はできていない
-
-、optunaで使用したDBをローカルPCにダンプしてきてインポートし、ローカルPCでoptuna-dashboardを起動する使い方になっている.
-
-
-##### 1. 可視化したいoptuna-pipelineジョブが完了するのを待つ
-
-##### 2. cloudSQLのインスタンスからダンプする
-`データベース名：optuna`を指定
-
-##### 3. ダンプしたファイルを手元のPCにダウンロードする
-
-##### 4. mysqlにインポートする
-```bash
-$ mysql -u{ユーザ名} -p{パスワード} optuna < [dumpファイル名].sql
-```
-
-##### 5. optuna-dashboardを起動し出力されたURLにアクセスする
-
-```bash
-$ optuna-dashboard mysql+pymysql://{ユーザ名}:{パスワード}@localhost:3306/optuna
-```
-
-※study名はパイプライン実行時に指定したjob_idに一致する.
+- チューニングしたいパラメータは、予め学習パイプラインの方でパイプラインパラメータ化しておく必要がある
+- optuna-workerで各学習ジョブのHistoryからlossを見て最適化を行うように実装しているので、学習パイプライン側でもHistoryをartifactsとして保存しておく必要がある
+- early stoppingを入れておくことを推奨

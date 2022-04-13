@@ -8,7 +8,8 @@ import optuna
 from optuna import Trial
 
 logger = getLogger(__name__)
-KFP_HOST = access_secret(secret_id="kubeflow_host")["HOST"]
+PROJECT_ID = "YOUR_PROJECT_ID"  # TODO: ここは環境変数か何かに
+KFP_HOST = access_secret(project_id=PROJECT_ID, secret_id="kubeflow_host")["HOST"]
 
 FLAGS = flags.FLAGS
 flags.DEFINE_string(
@@ -127,9 +128,7 @@ def main(argv):
     if len(argv) > 1:
         raise app.UsageError("Too many command-line arguments.")
 
-    res = access_secret(secret_id="optuna-db-secret")
-    print("=================")
-    print(res)
+    res = access_secret(project_id=PROJECT_ID, secret_id="optuna-db-secret")
     study_storage = f"mysql+pymysql://{res['USER']}:{res['PASSWORD']}@localhost/optuna"
 
     study = optuna.create_study(

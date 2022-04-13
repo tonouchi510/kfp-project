@@ -1,10 +1,9 @@
 import ast
 from google.cloud import secretmanager
 
-PROJECT_ID = "furyu-nbiz"
-
 
 def access_secret(
+    project_id: str,
     secret_id: str,
     version_id: str = "latest"
 ):
@@ -15,7 +14,7 @@ def access_secret(
 
     client = secretmanager.SecretManagerServiceClient()
 
-    name = f"projects/{PROJECT_ID}/secrets/{secret_id}/versions/{version_id}"
+    name = f"projects/{project_id}/secrets/{secret_id}/versions/{version_id}"
     response = client.access_secret_version(request={"name": name})
 
     payload = response.payload.data.decode("UTF-8")

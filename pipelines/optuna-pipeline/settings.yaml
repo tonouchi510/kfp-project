@@ -1,6 +1,6 @@
 arguments:
   pipeline_name: optuna-pipeline
-  bucket_name: ""
+  bucket_name: kfp-project
   job_id: xxxx
   n_trials: 3
   n_jobs: 2
