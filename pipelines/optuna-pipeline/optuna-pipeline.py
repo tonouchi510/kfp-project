@@ -10,25 +10,14 @@ component_store = kfp.components.ComponentStore(
 optuna_op = component_store.load_component("optuna-worker")
 slack_notification_op = component_store.load_component("slack-notification")
 
-"""
-sidecar = kfp.dsl.sidecar(
+sidecar = kfp.dsl.Sidecar(
     name="cloudsqlproxy",
     image="gcr.io/cloudsql-docker/gce-proxy:1.14",
     command=[
         "/cloud_sql_proxy",
-        f"-instances={os.environ.get('gcp_project')}:{os.environ.get('gcp_region')}:{os.environ.get('db_name')}=tcp:3306",
+        f"-instances={os.environ.get('GCP_PROJECT')}:{os.environ.get('GCP_REGION')}:{os.environ.get('DB_NAME')}=tcp:3306",
     ],
 )
-"""
-sidecar = kfp.dsl.sidecar(
-    name="cloudsqlproxy",
-    image="gcr.io/cloudsql-docker/gce-proxy:1.14",
-    command=[
-        "/cloud_sql_proxy",
-        f"-instances=furyu-nbiz:us-central1:optuna-db-instance=tcp:3306",
-    ],
-)
-
 
 # Define pipeline
 @dsl.pipeline(
@@ -48,7 +37,6 @@ def pipeline(
     with dsl.ExitHandler(
         exit_op=slack_notification_op(
             pipeline_name=pipeline_name,
-            bucket_name=bucket_name,
             job_id=job_id,
             message="Status: {{workflow.status}}"
         ).add_node_selector_constraint("cloud.google.com/gke-nodepool", "main-pool")
