@@ -111,3 +111,13 @@ CloudBuild用に作られている部分をGitHub Actionsに変更している.
 - GCR: コンポーネントイメージのpush & pullに使用
 - SecretManager: 実行時に必要となるSecretをここから取得する想定
 - ServiceAccount: github actions実行用、パイプライン実行用に2つ必要
+
+## 備考
+
+- CI/CD用Secrets設定
+  - github actions用に、リポジトリに以下のsecretsを登録してください
+  - AIP_SERVICE_ACCOUNT_NAME, GACTIONS_SERVICE_ACCOUNT_KEY, GCP_PROJECT_ID, GCP_REGION, KUBEFLOW_HOST, PIPELINE_ROOT, VERTEX_SERVICE_ACCOUNT_NAME
+  - 具体的には.github/workflows 以下のyamlを見てもらえると
+- 実行時用Secrets設定
+  - 実行時用のSecretsはGCPのSecret Managerに登録する想定です
+  - 既存のslack-notificationコンポーネントやoptuna-pipelineはSecret Managerから取得する処理があるので、動かす場合は適宜Secretsを登録してください
