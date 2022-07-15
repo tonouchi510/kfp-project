@@ -1,6 +1,5 @@
 import os
 import functools
-import pandas as pd
 import numpy as np
 import tensorflow as tf
 from typing import List
@@ -272,19 +271,15 @@ def main(argv):
         split="valid",
     )
 
-    history = t.run_train(train_ds, valid_ds, FLAGS.epochs)
-    if history:
-        hist_df = pd.DataFrame(history.history)
-        hist_df.to_csv("history.csv")
+    t.run_train(train_ds, valid_ds, FLAGS.epochs)
+    t.save_history()
 
-        storage_client = storage.Client()
-        bucket = storage_client.bucket(FLAGS.bucket_name)
-        blob = bucket.blob(f"{artifacts_dir.replace(f'gs://{FLAGS.bucket_name}/', '')}/history.csv")
-        blob.upload_from_filename("history.csv")
-    
-        t.model.save_weights(f"weights.h5")
-        blob = bucket.blob(f"{artifacts_dir.replace(f'gs://{FLAGS.bucket_name}/', '')}/weights.h5")
-        blob.upload_from_filename("weights.h5")
+    # FSA-Netの場合はsaved_modelでなく、h5pyで保存
+    storage_client = storage.Client()
+    bucket = storage_client.bucket(FLAGS.bucket_name)
+    t.model.save_weights(f"weights.h5")
+    blob = bucket.blob(f"{artifacts_dir.replace(f'gs://{FLAGS.bucket_name}/', '')}/weights.h5")
+    blob.upload_from_filename("weights.h5")
 
     logger.info(f"End of training. model path is {artifacts_dir}/saved_model")
 

@@ -2,8 +2,8 @@
 
 import tensorflow as tf
 from tensorflow.python.data.ops.readers import TFRecordDatasetV2
-from tensorflow.python.keras.callbacks import History
 from google.cloud import storage
+import pandas as pd
 from typing import Callable, List
 import os
 
@@ -157,7 +157,7 @@ class Training:
         train_ds: TFRecordDatasetV2,
         valid_ds: TFRecordDatasetV2,
         epochs: int
-    ) -> History:
+    ):
         """トレーニングを実施し、ログや結果を保存する.
 
         tf.keras.Model.fitでのトレーニングを行う.
@@ -168,7 +168,7 @@ class Training:
             valid_ds (TFRecordDatasetV2): tensorflowのデータセットパイプライン（検証用）.
             epochs (int): トレーニングを回す合計エポック数.
         """
-        history = self.model.fit(
+        self.history = self.model.fit(
             train_ds,
             validation_data=valid_ds,
             callbacks=self.callbacks,
@@ -177,4 +177,15 @@ class Training:
         )
         if self.artifacts_dir:
             self.model.save(f"{self.artifacts_dir}/saved_model", include_optimizer=False)
-        return history
+        return
+
+    def save_history(self):
+        """tf.keras.Model.fitの返却物であるHistoryをGCSにアップロードする.
+
+        実験結果の確認や、optuna-pipelineでのチューニングに使用される.
+        """
+        hist_df = pd.DataFrame(self.history.history)
+        hist_df.to_csv("history.csv")
+        bucket = self.storage_client.bucket(self.bucket_name)
+        blob = bucket.blob(f"{self.artifacts_dir.replace(f'gs://{self.bucket_name}/', '')}/history.csv")
+        blob.upload_from_filename("history.csv")
