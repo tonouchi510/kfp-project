@@ -57,6 +57,27 @@ def get_tfrecord_dataset(
     return dataset
 
 
+class CheckpointCallBack(tf.keras.callbacks.Callback):
+    """gcsへのアップロードも含めたCheckpointCallBack
+
+    ※savedModelと違い、h5pyファイルは直接gcsに書き込めないので
+    """
+    def __init__(
+        self,
+        checkpoint_dir: str,
+        storage_client: storage.Client,
+        bucket_name: str,
+    ):
+        super(CheckpointCallBack, self).__init__()
+        self.checkpoint_dir = checkpoint_dir
+        self.bucket = storage_client.bucket(bucket_name)
+
+    def on_epoch_end(self, epoch, logs=None):
+        self.model.save_weights(f"{epoch:05d}.h5")
+        blob = self.bucket.blob(f"{self.checkpoint_dir}/{epoch:05d}.h5")
+        blob.upload_from_filename(f"{epoch:05d}.h5")
+
+
 class Training:
     def __init__(
         self,
@@ -79,6 +100,8 @@ class Training:
         self.job_dir = job_dir
         self.artifacts_dir = artifacts_dir
         self.use_tpu = use_tpu
+        self.storage_client = storage.Client()
+        self.bucket_name = self.job_dir.split("/")[2]
         self.last_epoch = self._get_last_epoch()
 
         if self.use_tpu:
@@ -97,10 +120,10 @@ class Training:
         self.callbacks = [
             tf.keras.callbacks.TensorBoard(log_dir=f"{self.job_dir}/logs", histogram_freq=1),
             tf.keras.callbacks.TerminateOnNaN(),
-            tf.keras.callbacks.ModelCheckpoint(
-                filepath=os.path.join(self.job_dir, "checkpoints/{epoch:05d}"),
-                save_weights_only=True,
-                save_freq="epoch"
+            CheckpointCallBack(
+                checkpoint_dir=os.path.join(self.job_dir.replace(f"gs://{self.bucket_name}/", ""), "checkpoints"),
+                storage_client=self.storage_client,
+                bucket_name=self.bucket_name,
             )
         ]
 
@@ -108,20 +131,22 @@ class Training:
         if self.last_epoch == 0:
             self.model = build_model()
         else:
-            checkpoint = f"{self.job_dir}/checkpoints/{self.last_epoch:0>5}"
+            checkpoint = f"{self.last_epoch:0>5}.h5"
             self.model = build_model(checkpoint=checkpoint)
 
     def _get_last_epoch(self) -> int:
-        client = storage.Client()
-        bucket_name = self.job_dir.split("/")[2]
-        dest = self.job_dir.replace(f"gs://{bucket_name}/", "")
-        blobs = client.list_blobs(bucket_name, prefix=f"{dest}/checkpoints")
+        dest = self.job_dir.replace(f"gs://{self.bucket_name}/", "")
+        blobs = self.storage_client.list_blobs(self.bucket_name, prefix=f"{dest}/checkpoints")
         checkpoints = [0]
         for b in blobs:
             epoch = b.name.replace(f"{dest}/checkpoints/", "").split(".")[0]
             if epoch:
                 checkpoints.append(int(epoch))
         last_epoch = max(checkpoints)
+        if last_epoch > 0:
+            # last_epochのチェックポイントファイルをダウンロード
+            blob = self.storage_client.bucket(self.bucket_name).blob(f"{dest}/checkpoints/{last_epoch:0>5}.h5")
+            blob.download_to_filename(f"{last_epoch:0>5}.h5")
         return last_epoch
 
     def add_callbacks(self, callbacks: List) -> None:
