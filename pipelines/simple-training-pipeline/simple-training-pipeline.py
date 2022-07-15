@@ -21,7 +21,7 @@ def pipeline(
     pipeline_name: str = "simple-training-pipeline",
     bucket_name: str = "kfp-project",
     job_id: str = "{{JOB_ID}}",
-    model_type: int = 7,
+    model_type: str = "resnet",
     global_batch_size: int = 1024,
     epochs: int = 30,
     lr: float = 0.001,
