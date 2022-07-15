@@ -81,6 +81,17 @@ def objective(trial: Trial) -> float:
 
 
 def create_settings(trial):
+    """使用する学習パイプラインごとに、パラメータの範囲を設定する.
+
+    現状は、training_pipeline_name = head-pose-pipeline のものしか定義していないが、
+    他の学習パイプラインもoptunaで最適化したい場合はここに追加する.
+
+    Args:
+        trial (_type_): _description_
+
+    Raises:
+        ValueError: 未定義のパイプライン名を指定した場合に例外を投げる
+    """
     settings_file = f"{FLAGS.job_id}-{trial.number}.yaml"
 
     if FLAGS.training_pipeline_name == "head-pose-pipeline":
