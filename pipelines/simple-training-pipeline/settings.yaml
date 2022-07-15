@@ -1,0 +1,10 @@
+arguments:
+  bucket_name: kfp-project
+  job_id: xxxx
+  global_batch_size: 1024
+  epochs: 3
+  lr: 0.001
+  image_size: 64
+  num_classes: 100
+  model_type: resnet
+  dataset: gs://kfp-project/datasets/mnist
