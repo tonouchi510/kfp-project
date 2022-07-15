@@ -18,6 +18,8 @@ GCPを前提にしており、本番サービス用のパイプラインはVerte
   - FeatureStoreからデータを取得し、学習するパイプライン
 
 #### AIPlatform Pipelines
+- simple-training-pipeline
+  - シンプルな学習パイプラインの実装例
 - head-pose-dataset-pipeline
   - vision apiを使って顔向き推定用のデータセットを作成するパイプライン
   - 他のラベルを公開apiで擬似アノテーションする際にもほぼ同様なので参考にしてください
