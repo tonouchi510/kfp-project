@@ -1,0 +1,30 @@
+name: training
+description: Training step
+implementation:
+  container:
+    image: gcr.io/
+    command: [
+      poetry, run,
+      python3, main.py,
+      --pipeline_name, {inputValue: pipeline_name},
+      --bucket_name, {inputValue: bucket_name},
+      --job_id, {inputValue: job_id},
+      --global_batch_size, {inputValue: global_batch_size},
+      --epochs, {inputValue: epochs},
+      --learning_rate, {inputValue: learning_rate},
+      --dataset, {inputValue: dataset},
+      --model_type, {inputValue: model_type},
+      --image_size, {inputValue: image_size},
+      --num_classes, {inputValue: num_classes},
+    ]
+inputs:
+- {name: pipeline_name, type: String}
+- {name: bucket_name, type: String}
+- {name: job_id, type: String}
+- {name: global_batch_size, type: Integer}
+- {name: epochs, type: Integer}
+- {name: learning_rate, type: Float}
+- {name: dataset, type: String}
+- {name: model_type, type: String}
+- {name: image_size, type: Integer}
+- {name: num_classes, type: Integer}

@@ -26,6 +26,7 @@ def pipeline(
     epochs: int = 30,
     lr: float = 0.001,
     image_size: int = 64,
+    num_classes: int = 100,
     dataset: str = "gs://kfp-project/datasets/mnist",
 ):
     with dsl.ExitHandler(
@@ -45,6 +46,7 @@ def pipeline(
             dataset=dataset,
             model_type=model_type,
             image_size=image_size,
+            num_classes=num_classes,
         ).set_display_name("training")\
             .apply(gcp.use_preemptible_nodepool())\
             .apply(gcp.use_tpu(
