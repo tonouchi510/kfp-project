@@ -1,0 +1,10 @@
+name: hello
+implementation:
+  container:
+    image: gcr.io/
+    command: [
+      python3, main.py,
+      --message, {inputValue: message},
+    ]
+inputs:
+- {name: message, type: String}
