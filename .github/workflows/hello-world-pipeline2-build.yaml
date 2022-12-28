@@ -1,0 +1,156 @@
+name: hello-world-pipeline2-build
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "pipelines/hello-world-pipeline2/**/*"
+      - ".github/workflows/hello-world-pipeline2-build.yaml"
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "pipelines/hello-world-pipeline2/**/*"
+      - ".github/workflows/hello-world-pipeline2-build.yaml"
+
+env:
+  GCP_PROJECT: ${{ secrets.GCP_PROJECT_ID }}
+  GCP_REGION: ${{ secrets.GCP_REGION }}
+  GACTIONS_SERVICE_ACCOUNT_KEY: ${{ secrets.GACTIONS_SERVICE_ACCOUNT_KEY }}
+  AIP_SERVICE_ACCOUNT_NAME: ${{ secrets.AIP_SERVICE_ACCOUNT_NAME }}
+  KUBEFLOW_HOST: ${{ secrets.KUBEFLOW_HOST }}
+  GOOGLE_APPLICATION_CREDENTIALS: "searvice-account.json"
+  PIPELINE_NAME: "hello-world-pipeline2"
+
+jobs:
+  test:
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Checkout the repository
+        uses: actions/checkout@v2
+      
+      - name: Setup Authentication with gcloud
+        uses: google-github-actions/setup-gcloud@v0
+        with:
+          service_account_key: ${{ env.GACTIONS_SERVICE_ACCOUNT_KEY }}
+          export_default_credentials: true
+      
+      - name: Set up Python 3.9
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.9
+          architecture: 'x64'
+      
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install poetry
+          poetry env use python3.9
+          poetry install
+      
+      - name: Run test
+        run: poetry run echo "skip" #python3 -m tests.main
+      
+  build-docker-image-and-push:
+    needs: test
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Checkout the repository
+        uses: actions/checkout@v2
+      
+      - name: Setup Authentication with gcloud
+        uses: google-github-actions/setup-gcloud@v0
+        with:
+          service_account_key: ${{ env.GACTIONS_SERVICE_ACCOUNT_KEY }}
+          export_default_credentials: true
+      
+      - name: Configure docker to use the gcloud cli
+        run: gcloud auth configure-docker --quiet
+      
+      - name: Set docker build params
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            docker_tag=pr-${{ github.event.number }}-${GITHUB_SHA}
+          else
+            docker_tag=${GITHUB_SHA}
+          fi
+          echo "DOCKER_TAG=${docker_tag}" >>$GITHUB_ENV
+        
+      - name: Build and push hello component
+        id: hello_docker_build
+        uses: docker/build-push-action@v2
+        with:
+          file: ./pipelines/${{ env.PIPELINE_NAME }}/hello/Dockerfile
+          push: true
+          tags: |
+            gcr.io/${{ env.GCP_PROJECT }}/${{ env.PIPELINE_NAME }}-hello:${{ env.DOCKER_TAG }}
+          cache-from: |
+            gcr.io/${{ env.GCP_PROJECT }}/${{ env.PIPELINE_NAME }}-hello:${{ env.DOCKER_TAG }}
+            gcr.io/${{ env.GCP_PROJECT }}/${{ env.PIPELINE_NAME }}-hello:latest
+          cache-to: type=inline
+      
+  compile-pipeline-and-run:
+    needs: build-docker-image-and-push
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Checkout the repository
+        uses: actions/checkout@v2
+      
+      - name: Setup Authentication with gcloud
+        uses: google-github-actions/setup-gcloud@v0
+        with:
+          service_account_key: ${{ env.GACTIONS_SERVICE_ACCOUNT_KEY }}
+          export_default_credentials: true
+      
+      - name: Set up Python 3.9
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.9
+          architecture: 'x64'
+      
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install poetry
+          poetry env use python3.9
+          poetry install
+      
+      - name: Set docker build params
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            docker_tag=pr-${{ github.event.number }}-${GITHUB_SHA}
+          else
+            docker_tag=${GITHUB_SHA}
+          fi
+          echo "DOCKER_TAG=${docker_tag}" >>$GITHUB_ENV
+      
+      - name: Update component specs
+        run: |
+          echo "**********************************************"
+          echo "Update component image_tag to ${{ env.DOCKER_TAG }}"
+          echo "**********************************************"
+          poetry run python .github/workflows/helper-aiplatform.py update-specs \
+            --target_dir "pipelines/${{ env.PIPELINE_NAME }}" --image_tag "${{ env.DOCKER_TAG }}"
+      
+      - name: Compile pipeline
+        run: |
+          pipeline_file=pipelines/${{ env.PIPELINE_NAME }}/${{ env.PIPELINE_NAME }}.py
+          output_file=${{ env.PIPELINE_NAME }}.tar.gz
+          echo "**********************************************"
+          echo "Compile ${pipeline_file}"
+          echo "**********************************************"
+          poetry run dsl-compile --py "$pipeline_file" --output "${output_file}"
+
+      - name: Deploy and run pipeline
+        run: |
+          echo "**********************************************"
+          echo "Deploy ${{ env.PIPELINE_NAME }}"
+          echo "**********************************************"
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            poetry run python .github/workflows/helper-aiplatform.py deploy-pipeline \
+              --pipeline_name "${{ env.PIPELINE_NAME }}" --version "${{ env.DOCKER_TAG }}" --run
+          else
+            poetry run python .github/workflows/helper-aiplatform.py deploy-pipeline \
+              --pipeline_name "${{ env.PIPELINE_NAME }}" --version "${{ env.DOCKER_TAG }}" --is_master
+          fi
